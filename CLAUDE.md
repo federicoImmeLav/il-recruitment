@@ -24,7 +24,7 @@ SMS — NON vanno aggiunte se non esplicitamente richiesto):
   nessun `tailwind.config.js` — i token vivono come CSS custom properties in
   `src/index.css` e sono mappati in `@theme`).
 - Supabase (Postgres + Auth + Realtime), piano Free. Schema in `supabase/migrations/`
-  (0001 schema, 0002 RLS/RPC, 0003 seed corsi) — **fonte di verità**, da incollare in
+  (0001 schema, 0002 RLS/RPC, 0003 seed corsi, 0004 kiosk MDI: consensi privacy + RPC ricerca iscritti) — **fonte di verità**, da incollare in
   ordine nello SQL Editor del progetto Supabase.
 - React Router v6, TanStack Query, React Hook Form (niente Zod: validazione via regole
   `register()` di RHF, tenuta volutamente semplice).

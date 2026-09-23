@@ -16,13 +16,16 @@ interface InputFieldProps extends InputHTMLAttributes<HTMLInputElement> {
   label: string
   required?: boolean
   error?: string
+  /** Contenuto extra sotto il campo (es. badge "precompilato" nel kiosk MDI). */
+  hint?: ReactNode
 }
 
-export function InputField({ label, required, error, className = '', ...props }: InputFieldProps) {
+export function InputField({ label, required, error, hint, className = '', ...props }: InputFieldProps) {
   return (
     <div>
       <Label required={required}>{label}</Label>
       <input className={`${controlClass} ${className}`} {...props} />
+      {hint}
       {error && <p className="mt-1 text-xs text-red">{error}</p>}
     </div>
   )
@@ -32,16 +35,18 @@ interface SelectFieldProps extends SelectHTMLAttributes<HTMLSelectElement> {
   label: string
   required?: boolean
   error?: string
+  hint?: ReactNode
   children: ReactNode
 }
 
-export function SelectField({ label, required, error, className = '', children, ...props }: SelectFieldProps) {
+export function SelectField({ label, required, error, hint, className = '', children, ...props }: SelectFieldProps) {
   return (
     <div>
       <Label required={required}>{label}</Label>
       <select className={`${controlClass} ${className}`} {...props}>
         {children}
       </select>
+      {hint}
       {error && <p className="mt-1 text-xs text-red">{error}</p>}
     </div>
   )

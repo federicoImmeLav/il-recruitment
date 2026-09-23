@@ -113,6 +113,15 @@ export function MdiDetailDrawer({ id, onClose }: { id: string; onClose: () => vo
             />
           </section>
 
+          <section>
+            <p className="mb-1 text-xs font-bold uppercase tracking-wide text-text3">Consensi</p>
+            <Row label="Privacy A) finalità istituzionali" value={mdi.consenso_privacy_a ? 'Sì' : 'No'} />
+            <Row label="Privacy B) comunicazioni commerciali" value={mdi.consenso_privacy_b ? 'Sì' : 'No'} />
+            <Row label="Foto/video: realizzare" value={mdi.consenso_foto_realizzare ? 'Sì' : 'No'} />
+            <Row label="Foto/video: utilizzare" value={mdi.consenso_foto_utilizzare ? 'Sì' : 'No'} />
+            <Row label="Foto/video: comunicare" value={mdi.consenso_foto_comunicare ? 'Sì' : 'No'} />
+          </section>
+
           {mdi.esportato_innovaplan_at && (
             <p className="text-xs text-text3">
               Esportata il {new Date(mdi.esportato_innovaplan_at).toLocaleString('it-IT')}

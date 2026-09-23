@@ -149,6 +149,8 @@ const mdi: Mdi[] = bookings.slice(0, 3).map((b, i) => ({
   canale_passaparola: i === 1,
   canale_altro: false,
   canale_altro_testo: null,
+  consenso_privacy_a: true,
+  consenso_privacy_b: i !== 2,
   consenso_foto_realizzare: true,
   consenso_foto_utilizzare: true,
   consenso_foto_comunicare: false,
@@ -277,6 +279,12 @@ function confermate(openDayId: string) {
   return db.bookings.filter((b) => b.open_day_id === openDayId && (b.status === 'confirmed' || b.status === 'walk_in')).length
 }
 
+function presentiOggi(openDayId: string) {
+  return (db.bookings as unknown as Booking[]).filter(
+    (b) => b.open_day_id === openDayId && b.checked_in && b.status !== 'cancelled',
+  )
+}
+
 async function rpc(fn: string, args: Row): Promise<Result> {
   await new Promise((r) => setTimeout(r, 150))
   const od = db.open_days.find((o) => o.id === args.p_open_day_id) as OpenDay | undefined
@@ -313,6 +321,22 @@ async function rpc(fn: string, args: Row): Promise<Result> {
     }
     db.bookings.push(booking as unknown as Row)
     return { data: { ...booking }, error: null }
+  }
+  if (fn === 'kiosk_cerca_iscritti') {
+    const q = String(args.p_query ?? '').trim().toLowerCase()
+    if (!od || od.data !== isoDate(0) || q.length < 2) return { data: [], error: null }
+    const rows = presentiOggi(od.id)
+      .filter((b) => b.cognome.toLowerCase().startsWith(q))
+      .slice(0, 10)
+      .map(({ id, cognome, nome, scuola }) => ({ id, cognome, nome, scuola }))
+    return { data: rows, error: null }
+  }
+  if (fn === 'kiosk_dati_iscritto') {
+    const b = (db.bookings as unknown as Booking[]).find((x) => x.id === args.p_booking_id)
+    const odB = b && (db.open_days as unknown as OpenDay[]).find((o) => o.id === b.open_day_id)
+    if (!b || !odB || odB.data !== isoDate(0) || !b.checked_in || b.status === 'cancelled') return { data: [], error: null }
+    const { id, open_day_id, cognome, nome, data_nascita, scuola, telefono, email, corso_id, corso2_id } = b
+    return { data: [{ id, open_day_id, cognome, nome, data_nascita, scuola, telefono, email, corso_id, corso2_id }], error: null }
   }
   if (fn === 'is_staff') return { data: true, error: null }
   return { data: null, error: { message: `RPC ${fn} non simulata in demo` } }

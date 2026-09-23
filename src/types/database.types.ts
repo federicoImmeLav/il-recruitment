@@ -52,6 +52,15 @@ export type OpenDay = {
   updated_at: string
 }
 
+/** Risultato di kiosk_cerca_iscritti (0004_kiosk_mdi.sql): solo dati non di contatto. */
+export type KioskIscritto = { id: string; cognome: string; nome: string; scuola: string | null }
+
+/** Risultato di kiosk_dati_iscritto: campi per precompilare la MDI. */
+export type KioskDatiIscritto = Pick<
+  Booking,
+  'id' | 'open_day_id' | 'cognome' | 'nome' | 'data_nascita' | 'scuola' | 'telefono' | 'email' | 'corso_id' | 'corso2_id'
+>
+
 /** Colonne effettivamente leggibili da anon (vedi GRANT in 0002_rls_policies.sql). */
 export type OpenDayPublic = Pick<
   OpenDay,
@@ -137,6 +146,8 @@ export type Mdi = {
   canale_altro: boolean
   canale_altro_testo: string | null
 
+  consenso_privacy_a: boolean
+  consenso_privacy_b: boolean
   consenso_foto_realizzare: boolean
   consenso_foto_utilizzare: boolean
   consenso_foto_comunicare: boolean
@@ -243,6 +254,8 @@ export interface Database {
           canale_passaparola?: boolean
           canale_altro?: boolean
           canale_altro_testo?: string | null
+          consenso_privacy_a: boolean
+          consenso_privacy_b: boolean
           consenso_foto_realizzare: boolean
           consenso_foto_utilizzare: boolean
           consenso_foto_comunicare: boolean
@@ -274,6 +287,14 @@ export interface Database {
       posti_disponibili: {
         Args: { p_open_day_id: string }
         Returns: number
+      }
+      kiosk_cerca_iscritti: {
+        Args: { p_open_day_id: string; p_query: string }
+        Returns: KioskIscritto[]
+      }
+      kiosk_dati_iscritto: {
+        Args: { p_booking_id: string }
+        Returns: KioskDatiIscritto[]
       }
       is_staff: {
         Args: Record<string, never>

@@ -20,7 +20,7 @@ vecchio portale (composizione classi, azioni scuole, stage, ecc.) non sono inclu
 
 1. Crea un nuovo progetto su [supabase.com](https://supabase.com) (piano Free).
 2. Apri **SQL Editor** e incolla in ordine il contenuto dei file in `supabase/migrations/`
-   (`0001_init_schema.sql`, poi `0002_rls_policies.sql`, poi `0003_seed_corsi.sql`).
+   (`0001_init_schema.sql`, poi `0002_rls_policies.sql`, poi `0003_seed_corsi.sql`, poi `0004_kiosk_mdi.sql`).
 3. In **Project Settings → API** copia `Project URL` e `anon public key`.
 
 ### 2. Variabili d'ambiente

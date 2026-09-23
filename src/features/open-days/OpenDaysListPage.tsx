@@ -97,6 +97,10 @@ export function OpenDaysListPage() {
                   <Link to={`/staff/open-days/${od.id}/iscrizioni`}>
                     <Button variant="blue">Iscrizioni</Button>
                   </Link>
+                  {/* Kiosk pubblico: aperto in una nuova scheda, da usare sul tablet dell'evento. */}
+                  <a href={`/mdi/kiosk/${od.id}`} target="_blank" rel="noreferrer">
+                    <Button variant="ghost">Kiosk MDI ↗</Button>
+                  </a>
                 </div>
               </Card>
             ))}

@@ -1,3 +1,5 @@
+export type SiNo = 'si' | 'no' | ''
+
 export interface MdiFormValues {
   acc_cognome: string
   acc_nome: string
@@ -27,11 +29,13 @@ export interface MdiFormValues {
   corso_pref2_id: string
   corso_pref3_id: string
 
-  sostegno_stato: 'mai' | 'passato' | 'presente'
+  sostegno_stato: 'mai' | 'passato' | 'presente' | ''
   sostegno_asl: boolean
   sostegno_diagnosi_funzionale: boolean
   sostegno_bes: boolean
   sostegno_dsa: boolean
+  /** Solo UI: "Nessuna delle precedenti" per le certificazioni (non salvato). */
+  cert_nessuna: boolean
 
   canale_orientamento_scuola: boolean
   canale_open_day: boolean
@@ -40,10 +44,11 @@ export interface MdiFormValues {
   canale_altro: boolean
   canale_altro_testo: string
 
-  consenso_foto_realizzare: boolean
-  consenso_foto_utilizzare: boolean
-  consenso_foto_comunicare: boolean
-  dichiarazione_firma_genitore: boolean
+  consenso_privacy_a: SiNo
+  consenso_privacy_b: SiNo
+  consenso_foto_realizzare: SiNo
+  consenso_foto_utilizzare: SiNo
+  consenso_foto_comunicare: SiNo
 }
 
 export const MDI_DEFAULT_VALUES: MdiFormValues = {
@@ -58,7 +63,7 @@ export const MDI_DEFAULT_VALUES: MdiFormValues = {
   all_annualita: '',
   all_sezione: '',
   all_nato_a: '',
-  all_cittadinanza: 'Italiana',
+  all_cittadinanza: '',
   all_scuola_provenienza: '',
   all_residenza_via: '',
   all_residenza_citta: '',
@@ -72,26 +77,36 @@ export const MDI_DEFAULT_VALUES: MdiFormValues = {
   corso_pref1_id: '',
   corso_pref2_id: '',
   corso_pref3_id: '',
-  sostegno_stato: 'mai',
+  sostegno_stato: '',
   sostegno_asl: false,
   sostegno_diagnosi_funzionale: false,
   sostegno_bes: false,
   sostegno_dsa: false,
+  cert_nessuna: false,
   canale_orientamento_scuola: false,
   canale_open_day: false,
   canale_ricerca_online: false,
   canale_passaparola: false,
   canale_altro: false,
   canale_altro_testo: '',
-  consenso_foto_realizzare: false,
-  consenso_foto_utilizzare: false,
-  consenso_foto_comunicare: false,
-  dichiarazione_firma_genitore: false,
+  consenso_privacy_a: '',
+  consenso_privacy_b: '',
+  consenso_foto_realizzare: '',
+  consenso_foto_utilizzare: '',
+  consenso_foto_comunicare: '',
 }
 
+/** Passi del kiosk, come nel vecchio IL_Kiosk_MDI_v5. Il passo 0 (identificazione) non ha campi da validare. */
+export const STEP_TITLES = ['Identificazione', 'Dati allievo', 'Corsi e certificazioni', 'Privacy e consensi', 'Conferma']
+
 export const STEP_FIELDS: (keyof MdiFormValues)[][] = [
-  ['acc_cognome', 'acc_nome', 'acc_qualita', 'acc_cellulare', 'acc_email'],
+  [],
   [
+    'acc_cognome',
+    'acc_nome',
+    'acc_qualita',
+    'acc_cellulare',
+    'acc_email',
     'all_cognome',
     'all_nome',
     'all_data_nascita',
@@ -101,10 +116,33 @@ export const STEP_FIELDS: (keyof MdiFormValues)[][] = [
     'all_cittadinanza',
     'all_residenza_via',
     'all_residenza_citta',
+    'all_residenza_prov',
+    'all_residenza_cap',
+    'all_domicilio_via',
+    'all_domicilio_citta',
   ],
-  ['corso_pref1_id'],
-  ['sostegno_stato'],
-  ['dichiarazione_firma_genitore'],
+  ['corso_pref1_id', 'sostegno_stato', 'cert_nessuna', 'canale_altro_testo'],
+  [
+    'consenso_privacy_a',
+    'consenso_privacy_b',
+    'consenso_foto_realizzare',
+    'consenso_foto_utilizzare',
+    'consenso_foto_comunicare',
+  ],
+  [],
 ]
 
-export const STEP_TITLES = ['Accompagnatore', 'Allievo/a', 'Corsi di interesse', 'Sostegno e canale', 'Privacy e conferma']
+export const SEZIONI = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')
+
+/** Luogo stampato accanto alle firme ("Milano, il …"), come nel modulo cartaceo. */
+export const LUOGO_FIRMA = 'Milano'
+
+/**
+ * Annualità formativa a cui si riferisce la MDI, es. "27/28": l'anno formativo
+ * successivo a quello in corso (che inizia a settembre).
+ */
+export function annualitaIscrizione(date = new Date()) {
+  const inizioAnnoInCorso = date.getMonth() >= 8 ? date.getFullYear() : date.getFullYear() - 1
+  const a = (inizioAnnoInCorso + 1) % 100
+  return `${String(a).padStart(2, '0')}/${String((a + 1) % 100).padStart(2, '0')}`
+}
