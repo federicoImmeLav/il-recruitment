@@ -6,6 +6,8 @@ import { Badge } from '../../components/ui/Badge'
 import { Spinner, ErrorBanner } from '../../components/ui/Spinner'
 import { useEdizioni } from '../../hooks/useEdizioni'
 import { useOpenDays } from '../../hooks/useOpenDays'
+import { useCorsi } from '../../hooks/useCorsi'
+import { useOpenDayCorsiTutti } from '../../hooks/useOpenDayCorsi'
 import { EdizioneFormModal } from './EdizioneFormModal'
 import { OpenDayFormModal } from './OpenDayFormModal'
 import type { OpenDay, StatoOpenDay } from '../../types/database.types'
@@ -30,6 +32,10 @@ export function OpenDaysListPage() {
 
   const activeEdizioneId = edizioneId ?? edizioni?.[0]?.id
   const { data: openDays, isLoading: loadingOpenDays, error: openDaysError } = useOpenDays(activeEdizioneId)
+  const { data: corsi } = useCorsi()
+  const { data: openDayCorsi } = useOpenDayCorsiTutti()
+  const indirizziDi = (id: string) =>
+    (openDayCorsi ?? []).filter((r) => r.open_day_id === id).flatMap((r) => corsi?.find((c) => c.id === r.corso_id)?.nome ?? [])
 
   return (
     <div className="space-y-6">
@@ -90,12 +96,26 @@ export function OpenDaysListPage() {
                   <Badge color={STATO_COLOR[od.stato]}>{STATO_LABEL[od.stato]}</Badge>
                 </div>
                 <p className="text-sm text-text2">Posti massimi: {od.posti_max}</p>
+                <div className="flex flex-wrap gap-1">
+                  {indirizziDi(od.id).length > 0 ? (
+                    indirizziDi(od.id).map((nome) => (
+                      <Badge key={nome} color="purple">
+                        {nome}
+                      </Badge>
+                    ))
+                  ) : (
+                    <span className="text-xs text-text3">Tutti gli indirizzi</span>
+                  )}
+                </div>
                 <div className="mt-auto flex flex-wrap gap-2">
                   <Button variant="ghost" onClick={() => setOpenDayModal(od)}>
                     Modifica
                   </Button>
                   <Link to={`/staff/open-days/${od.id}/iscrizioni`}>
                     <Button variant="blue">Iscrizioni</Button>
+                  </Link>
+                  <Link to={`/staff/open-days/${od.id}/gruppi`}>
+                    <Button variant="ghost">Gruppi</Button>
                   </Link>
                   {/* Kiosk pubblico: aperto in una nuova scheda, da usare sul tablet dell'evento. */}
                   <a href={`/mdi/kiosk/${od.id}`} target="_blank" rel="noreferrer">

@@ -8,6 +8,7 @@ import { MdiKioskPage } from './features/mdi/MdiKioskPage'
 import { OpenDaysListPage } from './features/open-days/OpenDaysListPage'
 import { BookingsManagePage } from './features/bookings/BookingsManagePage'
 import { MonitoringDashboardPage } from './features/monitoring/MonitoringDashboardPage'
+import { GruppiOpenDayPage } from './features/gruppi/GruppiOpenDayPage'
 import { MdiListPage } from './features/mdi/MdiListPage'
 import { ImpostazioniPage } from './features/impostazioni/ImpostazioniPage'
 
@@ -36,6 +37,7 @@ export default function App() {
         <Route path="dashboard" element={<MonitoringDashboardPage />} />
         <Route path="open-days" element={<OpenDaysListPage />} />
         <Route path="open-days/:openDayId/iscrizioni" element={<BookingsManagePage />} />
+        <Route path="open-days/:openDayId/gruppi" element={<GruppiOpenDayPage />} />
         <Route path="mdi" element={<MdiListPage />} />
         <Route path="impostazioni" element={<ImpostazioniPage />} />
       </Route>

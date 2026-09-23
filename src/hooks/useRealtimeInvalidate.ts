@@ -3,7 +3,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabaseClient'
 
 /**
- * Sottoscrizione Supabase Realtime su `bookings`/`mdi`/`notifiche` filtrata per open day:
+ * Sottoscrizione Supabase Realtime su `bookings`/`mdi`/`notifiche`/`open_day_corsi` filtrata per open day:
  * invalida le query React Query interessate cosi' la dashboard di monitoraggio
  * si aggiorna da sola, senza polling, quando qualcuno registra/checka-in altrove.
  */
@@ -35,6 +35,13 @@ export function useRealtimeOpenDay(openDayId: string | undefined) {
         { event: '*', schema: 'public', table: 'notifiche', filter: `open_day_id=eq.${openDayId}` },
         () => {
           queryClient.invalidateQueries({ queryKey: ['notifiche', openDayId] })
+        },
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'open_day_corsi', filter: `open_day_id=eq.${openDayId}` },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['open_day_corsi'] })
         },
       )
       .subscribe()

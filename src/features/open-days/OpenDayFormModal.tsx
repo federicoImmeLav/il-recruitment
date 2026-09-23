@@ -4,6 +4,8 @@ import { Button } from '../../components/ui/Button'
 import { InputField, SelectField, TextareaField } from '../../components/ui/Field'
 import { ErrorBanner } from '../../components/ui/Spinner'
 import { useCreateOpenDay, useUpdateOpenDay } from '../../hooks/useOpenDays'
+import { useCorsi } from '../../hooks/useCorsi'
+import { useImpostaCorsiOpenDay, useOpenDayCorsi } from '../../hooks/useOpenDayCorsi'
 import type { OpenDay, StatoOpenDay, TipoOpenDay } from '../../types/database.types'
 
 export function OpenDayFormModal({
@@ -26,9 +28,27 @@ export function OpenDayFormModal({
   const [etichetta, setEtichetta] = useState(openDay?.etichetta_modulo ?? '')
   const [luogo, setLuogo] = useState(openDay?.luogo_override ?? '')
 
-  const saving = createOpenDay.isPending || updateOpenDay.isPending
+  // Indirizzi presentati: corso_id -> posti (stringa, '' = senza limite). null finche' non si tocca nulla.
+  const { data: corsi } = useCorsi()
+  const { indirizzi, configurati } = useOpenDayCorsi(openDay?.id)
+  const impostaCorsi = useImpostaCorsiOpenDay()
+  const [selezioneModificata, setSelezione] = useState<Record<string, string> | null>(null)
+  const selezione: Record<string, string> =
+    selezioneModificata ??
+    (configurati && indirizzi
+      ? Object.fromEntries(indirizzi.map((i) => [i.corso.id, i.posti_max ? String(i.posti_max) : '']))
+      : {})
 
-  const saveError = createOpenDay.error ?? updateOpenDay.error
+  function toggleCorso(id: string, attivo: boolean) {
+    const nuova = { ...selezione }
+    if (attivo) nuova[id] = ''
+    else delete nuova[id]
+    setSelezione(nuova)
+  }
+
+  const saving = createOpenDay.isPending || updateOpenDay.isPending || impostaCorsi.isPending
+
+  const saveError = createOpenDay.error ?? updateOpenDay.error ?? impostaCorsi.error
 
   async function handleSubmit() {
     const campi = {
@@ -42,10 +62,16 @@ export function OpenDayFormModal({
       luogo_override: luogo.trim() || null,
     }
     try {
-      if (openDay) {
-        await updateOpenDay.mutateAsync({ id: openDay.id, ...campi })
-      } else {
-        await createOpenDay.mutateAsync({ edizione_id: edizioneId, ...campi })
+      const salvato = openDay
+        ? await updateOpenDay.mutateAsync({ id: openDay.id, ...campi })
+        : await createOpenDay.mutateAsync({ edizione_id: edizioneId, ...campi })
+      if (selezioneModificata !== null) {
+        await impostaCorsi.mutateAsync({
+          openDayId: salvato.id,
+          corsi: (corsi ?? [])
+            .filter((c) => c.id in selezioneModificata)
+            .map((c) => ({ corso_id: c.id, posti_max: Number(selezioneModificata[c.id]) > 0 ? Number(selezioneModificata[c.id]) : null })),
+        })
       }
       onClose()
     } catch {
@@ -92,6 +118,41 @@ export function OpenDayFormModal({
           <option value="chiuso">Chiuso</option>
           <option value="annullato">Annullato</option>
         </SelectField>
+        <div className="space-y-2 rounded-il border border-border bg-gray-xlight p-3">
+          <p className="text-xs font-bold uppercase tracking-wide text-text3">Indirizzi presentati</p>
+          <p className="text-xs text-text3">
+            Sono quelli proposti nel form di iscrizione e i gruppi d'interesse dell'evento. Nessuno selezionato = tutti
+            i corsi attivi. I posti per indirizzo sono indicativi (non bloccano le iscrizioni).
+          </p>
+          {corsi?.map((c) => {
+            const attivo = c.id in selezione
+            return (
+              <div key={c.id} className="flex items-center justify-between gap-3">
+                <label className="flex cursor-pointer items-center gap-2 text-sm text-text">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 accent-orange"
+                    checked={attivo}
+                    onChange={(e) => toggleCorso(c.id, e.target.checked)}
+                  />
+                  {c.nome}
+                </label>
+                {attivo && (
+                  <input
+                    type="number"
+                    min={1}
+                    inputMode="numeric"
+                    aria-label={`Posti per ${c.nome}`}
+                    placeholder="posti"
+                    className="w-20 rounded-il border border-border bg-white px-2 py-1 text-sm focus:border-blue focus:outline-none"
+                    value={selezione[c.id]}
+                    onChange={(e) => setSelezione({ ...selezione, [c.id]: e.target.value })}
+                  />
+                )}
+              </div>
+            )
+          })}
+        </div>
         <div className="space-y-3 rounded-il border border-border bg-gray-xlight p-3">
           <p className="text-xs font-bold uppercase tracking-wide text-text3">Google Modulo e messaggi</p>
           <InputField

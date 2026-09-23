@@ -2,8 +2,9 @@ import { useState } from 'react'
 import { Badge } from '../../components/ui/Badge'
 import { Card } from '../../components/ui/Card'
 import { STATO_BOOKING_COLOR, STATO_BOOKING_LABEL } from '../../lib/constants'
-import type { Booking, Notifica } from '../../types/database.types'
+import type { Booking, Corso, Notifica } from '../../types/database.types'
 import { NotificheIscrizione } from './NotificheIscrizione'
+import { IndirizzoBadge } from '../gruppi/IndirizzoControls'
 
 const FILTRI = [
   { key: 'attivi', label: 'Iscritti', match: (b: Booking) => ['confirmed', 'walk_in', 'waitlist'].includes(b.status) },
@@ -12,7 +13,15 @@ const FILTRI = [
 ] as const
 
 /** Elenco iscritti di un Open Day (esclusi quelli ancora da approvare), con stato delle notifiche. */
-export function ElencoIscritti({ bookings, notifiche }: { bookings: Booking[]; notifiche: Notifica[] }) {
+export function ElencoIscritti({
+  bookings,
+  notifiche,
+  corsi,
+}: {
+  bookings: Booking[]
+  notifiche: Notifica[]
+  corsi: Corso[]
+}) {
   const [filtro, setFiltro] = useState<(typeof FILTRI)[number]['key']>('attivi')
   const f = FILTRI.find((x) => x.key === filtro)!
   const righe = bookings.filter(f.match)
@@ -51,6 +60,9 @@ export function ElencoIscritti({ bookings, notifiche }: { bookings: Booking[]; n
                 {b.email ? ` · ${b.email}` : ''}
                 {b.scuola ? ` · ${b.scuola}` : ''}
               </p>
+              <div className="mt-0.5">
+                <IndirizzoBadge booking={b} corsi={corsi} />
+              </div>
               {b.status === 'rejected' && b.motivo_rifiuto && (
                 <p className="text-xs italic text-text3">Motivo: {b.motivo_rifiuto}</p>
               )}

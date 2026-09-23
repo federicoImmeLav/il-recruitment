@@ -22,7 +22,7 @@ vecchio portale (composizione classi, azioni scuole, stage, ecc.) non sono inclu
 2. Apri **SQL Editor** e incolla in ordine il contenuto dei file in `supabase/migrations/`
    (`0001_init_schema.sql`, `0002_rls_policies.sql`, `0003_seed_corsi.sql`, `0004_kiosk_mdi.sql`,
    `0005_stato_rifiutata.sql`, `0006_google_forms_notifiche.sql`, `0008_mdi_anagrafica_innovaplan.sql`,
-   `0009_kiosk_ricerca_estesa.sql`).
+   `0009_kiosk_ricerca_estesa.sql`, `0010_indirizzi_gruppi.sql`).
    La `0007_cron_notifiche.sql` va eseguita dopo aver configurato le notifiche (vedi sotto).
 3. In **Project Settings → API** copia `Project URL` e `anon public key`.
 
@@ -131,7 +131,8 @@ src/
     ├── registration/   # form pubblico di iscrizione all'Open Day
     ├── bookings/       # gestione iscrizioni + check-in (staff)
     ├── monitoring/      # dashboard di monitoraggio live (staff)
-    ├── open-days/       # creazione/gestione edizioni e Open Day (staff)
+    ├── open-days/       # creazione/gestione edizioni e Open Day + indirizzi presentati (staff)
+    ├── gruppi/          # gruppi d'interesse per indirizzo: board live + riepilogo (staff)
     └── mdi/             # kiosk MDI (pubblico) + elenco/gestione (staff)
 
 supabase/migrations/     # schema, RLS policies, seed dei corsi

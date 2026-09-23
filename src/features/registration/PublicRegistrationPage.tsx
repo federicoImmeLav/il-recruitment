@@ -6,7 +6,7 @@ import { Button } from '../../components/ui/Button'
 import { CheckboxField, InputField, SelectField } from '../../components/ui/Field'
 import { Spinner, ErrorBanner } from '../../components/ui/Spinner'
 import { useOpenDayPublic, usePostiDisponibili } from '../../hooks/useOpenDays'
-import { useCorsi } from '../../hooks/useCorsi'
+import { useOpenDayCorsi } from '../../hooks/useOpenDayCorsi'
 import { useCreateBooking } from '../../hooks/useBookings'
 
 export function PublicRegistrationPage() {
@@ -14,7 +14,8 @@ export function PublicRegistrationPage() {
   const navigate = useNavigate()
   const { data: openDay, isLoading, error } = useOpenDayPublic(openDayId)
   const { data: postiDisponibili } = usePostiDisponibili(openDayId)
-  const { data: corsi } = useCorsi()
+  // Solo gli indirizzi presentati in questo Open Day (tutti i corsi attivi se non configurati).
+  const corsi = useOpenDayCorsi(openDayId).indirizzi?.map((i) => i.corso)
   const createBooking = useCreateBooking()
 
   const [cognome, setCognome] = useState('')

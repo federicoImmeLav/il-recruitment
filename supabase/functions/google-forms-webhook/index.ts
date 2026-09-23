@@ -102,6 +102,15 @@ Deno.serve(async (req) => {
     return corsi?.find((c) => normalizza(n).startsWith(normalizza(c.nome)))?.id ?? null
   }
 
+  // Indirizzi dell'Open Day (0010): se quello scelto non c'e' l'iscrizione si salva
+  // comunque (lo staff la vede "fuori Open Day" e la sposta), ma lo si annota nel log.
+  const corso1Id = corsoId(payload.corso1)
+  const { data: indirizziOd } = await db.from('open_day_corsi').select('corso_id').eq('open_day_id', openDay.id)
+  const fuoriOpenDay =
+    corso1Id && indirizziOd?.length && !indirizziOd.some((r) => r.corso_id === corso1Id)
+      ? `Indirizzo "${testo(payload.corso1)}" non presentato in questo Open Day`
+      : null
+
   const note = [testo(payload.note), payload.submittedAt ? `Modulo Google inviato il ${payload.submittedAt}` : null]
     .filter(Boolean)
     .join(' — ')
@@ -120,7 +129,7 @@ Deno.serve(async (req) => {
       scuola: testo(payload.scuola),
       classe: testo(payload.classe),
       residenza: testo(payload.residenza),
-      corso_id: corsoId(payload.corso1),
+      corso_id: corso1Id,
       corso2_id: corsoId(payload.corso2),
       acc_cognome: testo(payload.accCognome),
       acc_nome: testo(payload.accNome),
@@ -138,6 +147,6 @@ Deno.serve(async (req) => {
     return json({ esito }, esito === 'errore' ? 500 : 200)
   }
 
-  await log('importata', null, booking.id)
+  await log('importata', fuoriOpenDay, booking.id)
   return json({ esito: 'importata', booking_id: booking.id })
 })

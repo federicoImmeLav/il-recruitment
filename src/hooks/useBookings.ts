@@ -94,6 +94,20 @@ export function useCheckIn() {
 }
 
 /**
+ * Sposta un iscritto in un altro indirizzo / gruppo d'interesse: aggiorna
+ * `corso_id` (il gruppo coincide con l'indirizzo), `corso_iniziale_id` resta
+ * quello dell'iscrizione per sapere chi ha cambiato idea.
+ */
+export function useSpostaIndirizzo() {
+  const update = useUpdateBooking()
+  return {
+    ...update,
+    sposta: (booking: Booking, corsoId: string | null) =>
+      update.mutateAsync({ id: booking.id, open_day_id: booking.open_day_id, corso_id: corsoId }),
+  }
+}
+
+/**
  * Approva (sempre "confermata", anche oltre i posti massimi) o rifiuta una
  * richiesta: la RPC accoda anche la notifica alla famiglia. Subito dopo prova a
  * inviare la coda, senza attendere il giro del cron (ogni 5 minuti).

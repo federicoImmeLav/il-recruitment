@@ -12,6 +12,7 @@ import type {
   Mdi,
   Notifica,
   OpenDay,
+  OpenDayCorso,
   Profile,
 } from '../../types/database.types'
 import { componiMessaggio } from '../messaggi'
@@ -116,6 +117,16 @@ const campiDecisione = {
 }
 const open_days: OpenDay[] = [openDay(0, '15:00', 20), openDay(7, '10:00', 30), openDay(14, '15:30', 15, 'OpenDay2e')]
 
+// Indirizzi presentati: il 1° Open Day ha una selezione (con posti per alcuni), il 2° usa tutti i corsi
+// attivi (nessuna configurazione), il 3° solo l'area ristorazione.
+const open_day_corsi: OpenDayCorso[] = [
+  ...[0, 1, 2, 4, 6].map((c, i) => ({ open_day_id: open_days[0].id, corso_id: corsi[c].id, posti_max: i < 2 ? 4 : null, ordine: i + 1 })),
+  ...[0, 1, 2].map((c, i) => ({ open_day_id: open_days[2].id, corso_id: corsi[c].id, posti_max: null, ordine: i + 1 })),
+]
+
+// Iscritti che hanno gia' cambiato indirizzo rispetto all'iscrizione (indice -> corso iniziale).
+const cambiSeed: Record<number, number> = { 2: 5, 4: 0 }
+
 const nomi = [
   ['Rossi', 'Luca'], ['Bianchi', 'Giulia'], ['Ferrari', 'Matteo'], ['Esposito', 'Sofia'],
   ['Romano', 'Alessandro'], ['Colombo', 'Aurora'], ['Ricci', 'Lorenzo'], ['Marino', 'Ginevra'],
@@ -138,6 +149,7 @@ const bookings: Booking[] = nomi.map(([cognome, nome], i) => {
     email: i % 2 === 0 ? `famiglia.${cognome.toLowerCase()}@example.com` : null,
     corso_id: corsi[i % corsi.length].id,
     corso2_id: corsi[(i + 3) % corsi.length].id,
+    corso_iniziale_id: corsi[cambiSeed[i] ?? i % corsi.length].id,
     canale: i % 4 === 0 ? 'scuola' : 'online',
     status: 'confirmed',
     flag_seconda_media: false,
@@ -174,6 +186,7 @@ richiesteGoogle.forEach(([cognome, nome, genitore, email, odIndex], i) => {
     email,
     corso_id: corsi[(i * 2) % corsi.length].id,
     corso2_id: null,
+    corso_iniziale_id: corsi[(i * 2) % corsi.length].id,
     canale: 'online',
     status: 'pending',
     flag_seconda_media: false,
@@ -316,6 +329,7 @@ const db: Record<string, Row[]> = {
   corsi: corsi as unknown as Row[],
   edizioni: edizioni as unknown as Row[],
   open_days: open_days as unknown as Row[],
+  open_day_corsi: open_day_corsi as unknown as Row[],
   bookings: bookings as unknown as Row[],
   mdi: mdi as unknown as Row[],
   impostazioni: [impostazioni] as unknown as Row[],
@@ -518,6 +532,7 @@ async function rpc(fn: string, args: Row): Promise<Result> {
       email: (args.p_email as string) ?? null,
       corso_id: (args.p_corso_id as string) ?? null,
       corso2_id: (args.p_corso2_id as string) ?? null,
+      corso_iniziale_id: (args.p_corso_id as string) ?? null,
       canale: (args.p_canale as Booking['canale']) ?? 'online',
       status: confermate(od.id) < od.posti_max ? 'confirmed' : 'waitlist',
       flag_seconda_media: (args.p_flag_seconda_media as boolean) ?? false,
@@ -568,6 +583,15 @@ async function rpc(fn: string, args: Row): Promise<Result> {
     })
     accodaNotifica(b, approva ? 'approvazione' : 'rifiuto', motivo)
     return { data: { ...b }, error: null }
+  }
+  if (fn === 'imposta_corsi_open_day') {
+    // Replica di 0010: sostituzione completa della configurazione indirizzi.
+    const nuovi = (args.p_corsi as { corso_id: string; posti_max: number | null }[]) ?? []
+    db.open_day_corsi = [
+      ...db.open_day_corsi.filter((r) => r.open_day_id !== args.p_open_day_id),
+      ...nuovi.map((c, i) => ({ open_day_id: args.p_open_day_id, corso_id: c.corso_id, posti_max: c.posti_max, ordine: i + 1 })),
+    ]
+    return { data: null, error: null }
   }
   if (fn === 'is_staff') return { data: true, error: null }
   return { data: null, error: { message: `RPC ${fn} non simulata in demo` } }

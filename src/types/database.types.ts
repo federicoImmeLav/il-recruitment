@@ -92,6 +92,14 @@ export type Corso = {
   codice_ministeriale: string | null
 }
 
+/** Indirizzo presentato in un Open Day (0010_indirizzi_gruppi.sql). Posti solo informativi. */
+export type OpenDayCorso = {
+  open_day_id: string
+  corso_id: string
+  posti_max: number | null
+  ordine: number
+}
+
 export type Booking = {
   id: string
   open_day_id: string
@@ -106,6 +114,8 @@ export type Booking = {
   email: string | null
   corso_id: string | null
   corso2_id: string | null
+  /** Indirizzo scelto all'iscrizione (0010, via trigger); `corso_id` e' quello attuale / gruppo d'interesse. */
+  corso_iniziale_id: string | null
   canale: CanaleIscrizione
   status: StatoBooking
   flag_seconda_media: boolean
@@ -311,6 +321,12 @@ export interface Database {
         }
         Update: Partial<Corso>
       } & NoRelationships
+      open_day_corsi: {
+        Row: OpenDayCorso
+        // Scrittura solo via RPC imposta_corsi_open_day (sostituzione atomica).
+        Insert: OpenDayCorso
+        Update: Partial<OpenDayCorso>
+      } & NoRelationships
       bookings: {
         Row: Booking
         // Nessun insert diretto da client: le prenotazioni si creano solo via RPC create_booking().
@@ -444,6 +460,10 @@ export interface Database {
       decidi_iscrizione: {
         Args: { p_booking_id: string; p_approva: boolean; p_motivo?: string | null }
         Returns: Booking
+      }
+      imposta_corsi_open_day: {
+        Args: { p_open_day_id: string; p_corsi: { corso_id: string; posti_max: number | null }[] }
+        Returns: undefined
       }
       is_staff: {
         Args: Record<string, never>
