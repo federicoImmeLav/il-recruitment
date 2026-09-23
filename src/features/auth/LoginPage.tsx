@@ -29,10 +29,11 @@ export function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-xl px-4">
+    <div className="flex min-h-dvh items-center justify-center bg-surface-container-low px-4 py-8">
       <Card className="w-full max-w-sm">
-        <h1 className="mb-1 text-lg font-bold text-text">Area riservata staff</h1>
-        <p className="mb-5 text-sm text-text3">Immaginazione e Lavoro — Recruitment IeFP</p>
+        <img src="/logo-il.jpg" alt="Immaginazione e Lavoro" className="mx-auto mb-4 h-20 w-auto mix-blend-multiply" />
+        <h1 className="text-center text-headline-s text-on-surface">Area riservata staff</h1>
+        <p className="mb-6 mt-1 text-center text-body-m text-on-surface-variant">Recruitment IeFP</p>
         <form onSubmit={handleSubmit} className="space-y-4">
           <InputField
             label="Email"
@@ -55,7 +56,7 @@ export function LoginPage() {
             {submitting ? 'Accesso in corso…' : 'Accedi'}
           </Button>
         </form>
-        <p className="mt-4 text-xs text-text3">
+        <p className="mt-6 text-body-s text-on-surface-variant">
           Non hai un account? Gli accessi staff vengono creati dall’amministratore: contattalo per essere invitato.
         </p>
       </Card>

@@ -1,6 +1,10 @@
 import { useState } from 'react'
 import { Badge } from '../../components/ui/Badge'
 import { Card } from '../../components/ui/Card'
+import { ChipSet, FilterChip } from '../../components/ui/Chip'
+import { Icon } from '../../components/ui/Icon'
+import { List } from '../../components/ui/List'
+import { EmptyState, SectionHeader } from '../../components/ui/PageHeader'
 import { STATO_BOOKING_COLOR, STATO_BOOKING_LABEL } from '../../lib/constants'
 import type { Booking, Corso, Notifica } from '../../types/database.types'
 import { NotificheIscrizione } from './NotificheIscrizione'
@@ -11,6 +15,16 @@ const FILTRI = [
   { key: 'rifiutati', label: 'Rifiutati', match: (b: Booking) => b.status === 'rejected' },
   { key: 'tutti', label: 'Tutti', match: (b: Booking) => b.status !== 'pending' },
 ] as const
+
+/** Indicatore "presente" (check-in fatto), condiviso con la board dei gruppi. */
+export function PresenteLabel() {
+  return (
+    <span className="inline-flex items-center gap-1 text-label-m text-success">
+      <Icon name="check_circle" size={16} filled />
+      presente
+    </span>
+  )
+}
 
 /** Elenco iscritti di un Open Day (esclusi quelli ancora da approvare), con stato delle notifiche. */
 export function ElencoIscritti({
@@ -28,50 +42,43 @@ export function ElencoIscritti({
 
   return (
     <Card>
-      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-sm font-bold uppercase tracking-wide text-text2">Persone iscritte</h2>
-        <div className="flex gap-1">
-          {FILTRI.map((x) => (
-            <button
-              key={x.key}
-              type="button"
-              onClick={() => setFiltro(x.key)}
-              className={`rounded-full border px-3 py-1 text-xs font-bold ${
-                filtro === x.key ? 'border-orange bg-orange-light text-orange-dark' : 'border-border text-text2'
-              }`}
-            >
-              {x.label} ({bookings.filter(x.match).length})
-            </button>
-          ))}
-        </div>
-      </div>
+      <SectionHeader title="Persone iscritte" className="!mb-0" />
+      <ChipSet label="Filtra iscritti" className="mb-2">
+        {FILTRI.map((x) => (
+          <FilterChip key={x.key} selected={filtro === x.key} onClick={() => setFiltro(x.key)}>
+            {x.label} ({bookings.filter(x.match).length})
+          </FilterChip>
+        ))}
+      </ChipSet>
 
-      {righe.length === 0 && <p className="py-3 text-sm text-text3">Nessuna persona in questo elenco.</p>}
-      {righe.map((b) => (
-        <div key={b.id} className="border-b border-border py-2.5 last:border-0">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div>
-              <p className="text-sm font-bold text-text">
-                {b.cognome} {b.nome}
-                {b.checked_in && <span className="ml-2 text-xs text-green">✓ presente</span>}
-              </p>
-              <p className="text-xs text-text3">
-                {b.telefono}
-                {b.email ? ` · ${b.email}` : ''}
-                {b.scuola ? ` · ${b.scuola}` : ''}
-              </p>
-              <div className="mt-0.5">
-                <IndirizzoBadge booking={b} corsi={corsi} />
+      {righe.length === 0 && <EmptyState icon="group_off">Nessuna persona in questo elenco.</EmptyState>}
+      <List>
+        {righe.map((b) => (
+          <li key={b.id} className="py-3">
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <div className="min-w-0">
+                <p className="flex flex-wrap items-center gap-x-2 text-title-s text-on-surface">
+                  {b.cognome} {b.nome}
+                  {b.checked_in && <PresenteLabel />}
+                </p>
+                <p className="text-body-m text-on-surface-variant">
+                  {b.telefono}
+                  {b.email ? ` · ${b.email}` : ''}
+                  {b.scuola ? ` · ${b.scuola}` : ''}
+                </p>
+                <div className="mt-1">
+                  <IndirizzoBadge booking={b} corsi={corsi} />
+                </div>
+                {b.status === 'rejected' && b.motivo_rifiuto && (
+                  <p className="mt-1 text-body-s italic text-on-surface-variant">Motivo: {b.motivo_rifiuto}</p>
+                )}
               </div>
-              {b.status === 'rejected' && b.motivo_rifiuto && (
-                <p className="text-xs italic text-text3">Motivo: {b.motivo_rifiuto}</p>
-              )}
+              <Badge color={STATO_BOOKING_COLOR[b.status]}>{STATO_BOOKING_LABEL[b.status]}</Badge>
             </div>
-            <Badge color={STATO_BOOKING_COLOR[b.status]}>{STATO_BOOKING_LABEL[b.status]}</Badge>
-          </div>
-          <NotificheIscrizione booking={b} notifiche={notifiche.filter((n) => n.booking_id === b.id)} />
-        </div>
-      ))}
+            <NotificheIscrizione booking={b} notifiche={notifiche.filter((n) => n.booking_id === b.id)} />
+          </li>
+        ))}
+      </List>
     </Card>
   )
 }

@@ -5,6 +5,8 @@ import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
 import { CheckboxField, InputField, SelectField } from '../../components/ui/Field'
 import { Spinner, ErrorBanner } from '../../components/ui/Spinner'
+import { Icon } from '../../components/ui/Icon'
+import { Badge } from '../../components/ui/Badge'
 import { useOpenDayPublic, usePostiDisponibili } from '../../hooks/useOpenDays'
 import { useOpenDayCorsi } from '../../hooks/useOpenDayCorsi'
 import { useCreateBooking } from '../../hooks/useBookings'
@@ -75,18 +77,21 @@ export function PublicRegistrationPage() {
   return (
     <PublicLayout>
       <Card>
-        <h1 className="text-lg font-bold text-text">Iscrizione Open Day</h1>
-        <p className="mt-1 text-sm text-text2">
+        <h1 className="text-headline-s text-on-surface">Iscrizione Open Day</h1>
+        <p className="mt-1 flex items-center gap-2 text-body-l text-on-surface-variant">
+          <Icon name="event" size={20} />
           {new Date(openDay.data).toLocaleDateString('it-IT', { day: '2-digit', month: 'long', year: 'numeric' })} alle{' '}
           {openDay.ora.slice(0, 5)}
         </p>
         {typeof postiDisponibili === 'number' && (
-          <p className="mt-1 text-xs text-text3">
+          <p className="mt-2">
+            <Badge color={postiDisponibili > 0 ? 'success' : 'warning'}>
             {postiDisponibili > 0 ? `${postiDisponibili} posti disponibili` : 'Posti esauriti: sarai messo in lista d’attesa'}
+            </Badge>
           </p>
         )}
 
-        <form onSubmit={handleSubmit} className="mt-5 space-y-4">
+        <form onSubmit={handleSubmit} className="mt-6 space-y-4">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <InputField label="Cognome" required value={cognome} onChange={(e) => setCognome(e.target.value)} />
             <InputField label="Nome" required value={nome} onChange={(e) => setNome(e.target.value)} />
@@ -138,7 +143,7 @@ export function PublicRegistrationPage() {
 
           {submitError && <ErrorBanner message={submitError} />}
 
-          <Button type="submit" disabled={createBooking.isPending} className="w-full">
+          <Button type="submit" size="lg" disabled={createBooking.isPending} className="w-full">
             {createBooking.isPending ? 'Invio in corso…' : 'Conferma iscrizione'}
           </Button>
         </form>

@@ -1,29 +1,34 @@
 import { useState } from 'react'
 import { Button } from '../../components/ui/Button'
 import { Card } from '../../components/ui/Card'
-import { Modal } from '../../components/ui/Modal'
+import { Dialog } from '../../components/ui/Dialog'
+import { Icon } from '../../components/ui/Icon'
+import { List } from '../../components/ui/List'
 import { ErrorBanner } from '../../components/ui/Spinner'
 import { TextareaField } from '../../components/ui/Field'
+import { useSnackbar } from '../../components/ui/Snackbar'
 import { useCorsi } from '../../hooks/useCorsi'
 import { useDecidiIscrizione } from '../../hooks/useBookings'
 import type { Booking } from '../../types/database.types'
 
 function RifiutaModal({ booking, onClose }: { booking: Booking; onClose: () => void }) {
   const decidi = useDecidiIscrizione()
+  const snackbar = useSnackbar()
   const [motivo, setMotivo] = useState('')
 
   async function conferma() {
     await decidi.mutateAsync({ booking, approva: false, motivo })
+    snackbar(`Richiesta di ${booking.nome} rifiutata: famiglia avvisata`)
     onClose()
   }
 
   return (
-    <Modal
+    <Dialog
       title={`Rifiuta ${booking.cognome} ${booking.nome}`}
       onClose={onClose}
       footer={
         <>
-          <Button variant="ghost" onClick={onClose}>
+          <Button variant="text" onClick={onClose}>
             Annulla
           </Button>
           <Button variant="danger" disabled={decidi.isPending} onClick={() => void conferma()}>
@@ -42,12 +47,13 @@ function RifiutaModal({ booking, onClose }: { booking: Booking; onClose: () => v
         />
         {decidi.error && <ErrorBanner message="Operazione non riuscita, riprova." />}
       </div>
-    </Modal>
+    </Dialog>
   )
 }
 
 function RichiestaRow({ booking }: { booking: Booking }) {
   const decidi = useDecidiIscrizione()
+  const snackbar = useSnackbar()
   const { data: corsi } = useCorsi()
   const [rifiuta, setRifiuta] = useState(false)
   const corso = (id: string | null) => corsi?.find((c) => c.id === id)?.nome
@@ -58,34 +64,35 @@ function RichiestaRow({ booking }: { booking: Booking }) {
     booking.acc_cognome && `Genitore: ${booking.acc_cognome} ${booking.acc_nome ?? ''}`.trim(),
   ].filter(Boolean)
 
+  async function approva() {
+    await decidi.mutateAsync({ booking, approva: true })
+    snackbar(`Iscrizione di ${booking.nome} approvata: famiglia avvisata`)
+  }
+
   return (
-    <div className="flex flex-col gap-3 border-b border-border py-3 last:border-0 sm:flex-row sm:items-center sm:justify-between">
+    <li className="flex flex-col gap-3 py-3 sm:flex-row sm:items-center sm:justify-between">
       <div className="min-w-0">
-        <p className="font-bold text-text">
+        <p className="text-title-s text-on-surface">
           {booking.cognome} {booking.nome}
         </p>
-        <p className="text-xs text-text3">
+        <p className="text-body-m text-on-surface-variant">
           {booking.telefono}
           {booking.email ? ` · ${booking.email}` : ' · nessuna email (avviso via WhatsApp)'}
         </p>
-        {dettagli.length > 0 && <p className="text-xs text-text2">{dettagli.join(' · ')}</p>}
-        {booking.note_staff && <p className="text-xs italic text-text3">{booking.note_staff}</p>}
-        {decidi.error && <p className="mt-1 text-xs text-red">Operazione non riuscita, riprova.</p>}
+        {dettagli.length > 0 && <p className="text-body-s text-on-surface-variant">{dettagli.join(' · ')}</p>}
+        {booking.note_staff && <p className="text-body-s italic text-on-surface-variant">{booking.note_staff}</p>}
+        {decidi.error && <p className="mt-1 text-body-s text-error">Operazione non riuscita, riprova.</p>}
       </div>
       <div className="flex shrink-0 gap-2">
-        <Button
-          variant="success"
-          disabled={decidi.isPending}
-          onClick={() => void decidi.mutateAsync({ booking, approva: true })}
-        >
-          {decidi.isPending ? '…' : '✓ Approva'}
+        <Button variant="outlined" icon="close" disabled={decidi.isPending} onClick={() => setRifiuta(true)}>
+          Rifiuta
         </Button>
-        <Button variant="ghost" className="text-red" disabled={decidi.isPending} onClick={() => setRifiuta(true)}>
-          ✕ Rifiuta
+        <Button variant="success" icon="check" disabled={decidi.isPending} onClick={() => void approva()}>
+          {decidi.isPending ? '…' : 'Approva'}
         </Button>
       </div>
       {rifiuta && <RifiutaModal booking={booking} onClose={() => setRifiuta(false)} />}
-    </div>
+    </li>
   )
 }
 
@@ -95,18 +102,19 @@ export function RichiesteDaApprovare({ bookings }: { bookings: Booking[] }) {
   if (richieste.length === 0) return null
 
   return (
-    <Card className="border-l-4 border-l-orange">
-      <div className="mb-1 flex items-center justify-between gap-2">
-        <h2 className="text-sm font-bold uppercase tracking-wide text-text2">
-          Richieste da approvare ({richieste.length})
-        </h2>
+    <Card className="!border-warning/40 !bg-warning-container/30">
+      <div className="flex items-center gap-2">
+        <Icon name="pending_actions" className="text-on-warning-container" />
+        <h2 className="text-title-m text-on-surface">Richieste da approvare ({richieste.length})</h2>
       </div>
-      <p className="mb-2 text-xs text-text3">
+      <p className="mt-1 text-body-m text-on-surface-variant">
         Approvando o rifiutando, la famiglia riceve subito un messaggio con esito, data, ora e luogo.
       </p>
-      {richieste.map((b) => (
-        <RichiestaRow key={b.id} booking={b} />
-      ))}
+      <List className="mt-2">
+        {richieste.map((b) => (
+          <RichiestaRow key={b.id} booking={b} />
+        ))}
+      </List>
     </Card>
   )
 }

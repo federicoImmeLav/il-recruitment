@@ -1,4 +1,4 @@
-import { Modal } from '../../components/ui/Modal'
+import { Dialog } from '../../components/ui/Dialog'
 import { Button } from '../../components/ui/Button'
 import { Badge } from '../../components/ui/Badge'
 import { Spinner, ErrorBanner } from '../../components/ui/Spinner'
@@ -10,14 +10,17 @@ import { SOSTEGNO_STATO_LABEL } from '../../lib/constants'
 function Row({ label, value }: { label: string; value: string | number | null | undefined }) {
   if (!value) return null
   return (
-    <div className="flex justify-between gap-4 py-1 text-sm">
-      <span className="text-text3">{label}</span>
-      <span className="text-right font-bold text-text">{value}</span>
+    <div className="flex justify-between gap-4 py-1.5">
+      <span className="text-body-m text-on-surface-variant">{label}</span>
+      <span className="text-right text-body-m font-bold text-on-surface">{value}</span>
     </div>
   )
 }
 
-export function MdiDetailDrawer({ id, onClose }: { id: string; onClose: () => void }) {
+const SEZIONE = 'mb-1 border-b border-outline-variant pb-1 text-title-s text-primary'
+
+export function MdiDetailDrawer(
+{ id, onClose }: { id: string; onClose: () => void }) {
   const { data: mdi, isLoading, error } = useMdiDetail(id)
   const { data: corsi } = useCorsi()
   const { profile } = useAuth()
@@ -26,14 +29,16 @@ export function MdiDetailDrawer({ id, onClose }: { id: string; onClose: () => vo
   const corsoNome = (corsoId: string | null) => corsi?.find((c) => c.id === corsoId)?.nome
 
   return (
-    <Modal
+    <Dialog
       title="Dettaglio MDI"
+      variant="sheet"
       onClose={onClose}
       footer={
         mdi &&
         profile && (
           <Button
-            variant={mdi.esportato_innovaplan ? 'ghost' : 'success'}
+            variant={mdi.esportato_innovaplan ? 'outlined' : 'success'}
+            icon={mdi.esportato_innovaplan ? 'undo' : 'check'}
             disabled={toggleExport.isPending}
             onClick={() =>
               void toggleExport.mutateAsync({ id: mdi.id, esportato: !mdi.esportato_innovaplan, staffId: profile.id })
@@ -48,17 +53,17 @@ export function MdiDetailDrawer({ id, onClose }: { id: string; onClose: () => vo
       {error && <ErrorBanner message="Errore nel caricamento della MDI." />}
       {mdi && (
         <div className="space-y-5">
-          <div className="flex items-center justify-between">
-            <h3 className="text-base font-bold text-text">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h3 className="text-headline-s text-on-surface">
               {mdi.all_cognome} {mdi.all_nome}
             </h3>
-            <Badge color={mdi.esportato_innovaplan ? 'green' : 'orange'}>
+            <Badge color={mdi.esportato_innovaplan ? 'success' : 'warning'}>
               {mdi.esportato_innovaplan ? 'Esportata su INNOVAPLAN' : 'Da esportare'}
             </Badge>
           </div>
 
           <section>
-            <p className="mb-1 text-xs font-bold uppercase tracking-wide text-text3">Allievo/a</p>
+            <h4 className={SEZIONE}>Allievo/a</h4>
             <Row label="Codice fiscale" value={mdi.all_codice_fiscale} />
             <Row label="Sesso" value={mdi.all_sesso} />
             <Row label="Data di nascita" value={new Date(mdi.all_data_nascita).toLocaleDateString('it-IT')} />
@@ -85,7 +90,7 @@ export function MdiDetailDrawer({ id, onClose }: { id: string; onClose: () => vo
           </section>
 
           <section>
-            <p className="mb-1 text-xs font-bold uppercase tracking-wide text-text3">Accompagnatore</p>
+            <h4 className={SEZIONE}>Accompagnatore</h4>
             <Row label="Nome" value={`${mdi.acc_cognome} ${mdi.acc_nome} (${mdi.acc_qualita})`} />
             <Row label="Codice fiscale" value={mdi.acc_codice_fiscale} />
             <Row
@@ -104,14 +109,14 @@ export function MdiDetailDrawer({ id, onClose }: { id: string; onClose: () => vo
           </section>
 
           <section>
-            <p className="mb-1 text-xs font-bold uppercase tracking-wide text-text3">Corsi di interesse</p>
+            <h4 className={SEZIONE}>Corsi di interesse</h4>
             <Row label="1ª preferenza" value={corsoNome(mdi.corso_pref1_id)} />
             <Row label="2ª preferenza" value={corsoNome(mdi.corso_pref2_id)} />
             <Row label="3ª preferenza" value={corsoNome(mdi.corso_pref3_id)} />
           </section>
 
           <section>
-            <p className="mb-1 text-xs font-bold uppercase tracking-wide text-text3">Sostegno / canale</p>
+            <h4 className={SEZIONE}>Sostegno / canale</h4>
             <Row label="Sostegno" value={SOSTEGNO_STATO_LABEL[mdi.sostegno_stato]} />
             <Row
               label="Certificazioni"
@@ -143,7 +148,7 @@ export function MdiDetailDrawer({ id, onClose }: { id: string; onClose: () => vo
           </section>
 
           <section>
-            <p className="mb-1 text-xs font-bold uppercase tracking-wide text-text3">Consensi</p>
+            <h4 className={SEZIONE}>Consensi</h4>
             <Row label="Privacy A) finalità istituzionali" value={mdi.consenso_privacy_a ? 'Sì' : 'No'} />
             <Row label="Privacy B) comunicazioni commerciali" value={mdi.consenso_privacy_b ? 'Sì' : 'No'} />
             <Row label="Foto/video: realizzare" value={mdi.consenso_foto_realizzare ? 'Sì' : 'No'} />
@@ -152,12 +157,12 @@ export function MdiDetailDrawer({ id, onClose }: { id: string; onClose: () => vo
           </section>
 
           {mdi.esportato_innovaplan_at && (
-            <p className="text-xs text-text3">
+            <p className="text-body-s text-on-surface-variant">
               Esportata il {new Date(mdi.esportato_innovaplan_at).toLocaleString('it-IT')}
             </p>
           )}
         </div>
       )}
-    </Modal>
+    </Dialog>
   )
 }

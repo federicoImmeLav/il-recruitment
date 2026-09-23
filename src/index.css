@@ -1,84 +1,260 @@
-@import url('https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700;900&display=swap');
 @import "tailwindcss";
 
+/* ── Design system: Material Design 3 (m3.material.io) con brand IL ──────────
+   Ruoli colore M3 generati con material-color-utilities dal seed arancio IL
+   #ec6726 (primary = tono 49, contrasto AA con on-primary), neutri a bassa
+   croma, tertiary dal blu IL, error dal rosso IL. Custom color M3 (success,
+   warning, accent) dai verdi/gialli/viola del vecchio portale. Solo tema
+   chiaro: per un tema scuro basta ridefinire le --md-sys-* e --md-custom-*.
+   Nel codice usare solo questi ruoli (bg-primary, text-on-surface-variant,
+   bg-surface-container…), mai hex o colori Tailwind di default. */
 :root {
-  --red: #b71928;
-  --red-l: #f5e6e8;
-  --red-d: #8f1320;
+  --md-sys-color-primary: #c84d07;
+  --md-sys-color-on-primary: #ffffff;
+  --md-sys-color-primary-container: #ffdbcd;
+  --md-sys-color-on-primary-container: #7e2c00;
+  --md-sys-color-secondary: #77574b;
+  --md-sys-color-on-secondary: #ffffff;
+  --md-sys-color-secondary-container: #ffdbcd;
+  --md-sys-color-on-secondary-container: #2c160c;
+  --md-sys-color-tertiary: #006590;
+  --md-sys-color-on-tertiary: #ffffff;
+  --md-sys-color-tertiary-container: #c8e6ff;
+  --md-sys-color-on-tertiary-container: #004c6e;
+  --md-sys-color-error: #b91b29;
+  --md-sys-color-on-error: #ffffff;
+  --md-sys-color-error-container: #ffdad7;
+  --md-sys-color-on-error-container: #930018;
 
-  --orange: #ec6726;
-  --orange-l: #fdf0e9;
-  --orange-d: #c45520;
+  --md-sys-color-surface: #fff8f6;
+  --md-sys-color-surface-dim: #e2d8d5;
+  --md-sys-color-surface-container-lowest: #ffffff;
+  --md-sys-color-surface-container-low: #fcf1ee;
+  --md-sys-color-surface-container: #f6ece8;
+  --md-sys-color-surface-container-high: #f1e6e3;
+  --md-sys-color-surface-container-highest: #ebe0dd;
+  --md-sys-color-on-surface: #1f1b19;
+  --md-sys-color-on-surface-variant: #51443f;
+  --md-sys-color-outline: #84746e;
+  --md-sys-color-outline-variant: #d6c3bc;
+  --md-sys-color-inverse-surface: #352f2d;
+  --md-sys-color-inverse-on-surface: #f9eeeb;
+  --md-sys-color-inverse-primary: #ffb597;
+  --md-sys-color-scrim: #000000;
 
-  --blue: #007db2;
-  --blue-l: #e5f3f9;
-  --blue-d: #005f88;
+  /* Custom color M3 */
+  --md-custom-color-success: #3d6a00;
+  --md-custom-color-on-success: #ffffff;
+  --md-custom-color-success-container: #cfecac;
+  --md-custom-color-on-success-container: #2d5000;
+  --md-custom-color-warning: #715d00;
+  --md-custom-color-on-warning: #ffffff;
+  --md-custom-color-warning-container: #f9e191;
+  --md-custom-color-on-warning-container: #554500;
+  --md-custom-color-accent: #6b4bad;
+  --md-custom-color-on-accent: #ffffff;
+  --md-custom-color-accent-container: #eaddff;
+  --md-custom-color-on-accent-container: #533294;
+  --md-custom-color-whatsapp: #006d2f;
+  --md-custom-color-on-whatsapp: #ffffff;
 
-  --green: #6eab27;
-  --green-l: #eef5e6;
-  --green-d: #527f1d;
-
-  --purple: #7c5cbf;
-  --purple-l: #ede5f9;
-  --purple-d: #5b3db0;
-
-  --gray: #6f6f6e;
-  --gray-l: #f5f5f5;
-  --gray-xl: #fafafa;
-
-  --border: #e8e8e8;
-  --border-d: #d0d0d0;
-
-  --text: #1a1a1a;
-  --text2: #555555;
-  --text3: #888888;
-
-  --radius: 8px;
-  --shadow: 0 1px 4px rgba(0, 0, 0, 0.08), 0 4px 20px rgba(0, 0, 0, 0.05);
+  /* Motion */
+  --md-sys-motion-easing-standard: cubic-bezier(0.2, 0, 0, 1);
+  --md-sys-motion-easing-emphasized-decelerate: cubic-bezier(0.05, 0.7, 0.1, 1);
+  --md-sys-motion-duration-short: 150ms;
+  --md-sys-motion-duration-medium: 300ms;
 }
 
 @theme {
-  --font-sans: 'Lato', sans-serif;
+  --font-sans: 'Lato', system-ui, sans-serif;
 
-  --color-red: var(--red);
-  --color-red-light: var(--red-l);
-  --color-red-dark: var(--red-d);
+  --color-primary: var(--md-sys-color-primary);
+  --color-on-primary: var(--md-sys-color-on-primary);
+  --color-primary-container: var(--md-sys-color-primary-container);
+  --color-on-primary-container: var(--md-sys-color-on-primary-container);
+  --color-secondary: var(--md-sys-color-secondary);
+  --color-on-secondary: var(--md-sys-color-on-secondary);
+  --color-secondary-container: var(--md-sys-color-secondary-container);
+  --color-on-secondary-container: var(--md-sys-color-on-secondary-container);
+  --color-tertiary: var(--md-sys-color-tertiary);
+  --color-on-tertiary: var(--md-sys-color-on-tertiary);
+  --color-tertiary-container: var(--md-sys-color-tertiary-container);
+  --color-on-tertiary-container: var(--md-sys-color-on-tertiary-container);
+  --color-error: var(--md-sys-color-error);
+  --color-on-error: var(--md-sys-color-on-error);
+  --color-error-container: var(--md-sys-color-error-container);
+  --color-on-error-container: var(--md-sys-color-on-error-container);
+  --color-surface: var(--md-sys-color-surface);
+  --color-surface-dim: var(--md-sys-color-surface-dim);
+  --color-surface-container-lowest: var(--md-sys-color-surface-container-lowest);
+  --color-surface-container-low: var(--md-sys-color-surface-container-low);
+  --color-surface-container: var(--md-sys-color-surface-container);
+  --color-surface-container-high: var(--md-sys-color-surface-container-high);
+  --color-surface-container-highest: var(--md-sys-color-surface-container-highest);
+  --color-on-surface: var(--md-sys-color-on-surface);
+  --color-on-surface-variant: var(--md-sys-color-on-surface-variant);
+  --color-outline: var(--md-sys-color-outline);
+  --color-outline-variant: var(--md-sys-color-outline-variant);
+  --color-inverse-surface: var(--md-sys-color-inverse-surface);
+  --color-inverse-on-surface: var(--md-sys-color-inverse-on-surface);
+  --color-inverse-primary: var(--md-sys-color-inverse-primary);
+  --color-scrim: var(--md-sys-color-scrim);
+  --color-success: var(--md-custom-color-success);
+  --color-on-success: var(--md-custom-color-on-success);
+  --color-success-container: var(--md-custom-color-success-container);
+  --color-on-success-container: var(--md-custom-color-on-success-container);
+  --color-warning: var(--md-custom-color-warning);
+  --color-on-warning: var(--md-custom-color-on-warning);
+  --color-warning-container: var(--md-custom-color-warning-container);
+  --color-on-warning-container: var(--md-custom-color-on-warning-container);
+  --color-accent: var(--md-custom-color-accent);
+  --color-on-accent: var(--md-custom-color-on-accent);
+  --color-accent-container: var(--md-custom-color-accent-container);
+  --color-on-accent-container: var(--md-custom-color-on-accent-container);
+  --color-whatsapp: var(--md-custom-color-whatsapp);
+  --color-on-whatsapp: var(--md-custom-color-on-whatsapp);
 
-  --color-orange: var(--orange);
-  --color-orange-light: var(--orange-l);
-  --color-orange-dark: var(--orange-d);
+  /* Scala tipografica M3 con Lato (non ha il peso 500: i ruoli "medium" usano 700). */
+  --text-display-s: 2.25rem;
+  --text-display-s--line-height: 2.75rem;
+  --text-display-s--font-weight: 700;
+  --text-headline-m: 1.75rem;
+  --text-headline-m--line-height: 2.25rem;
+  --text-headline-m--font-weight: 700;
+  --text-headline-s: 1.5rem;
+  --text-headline-s--line-height: 2rem;
+  --text-headline-s--font-weight: 700;
+  --text-title-l: 1.375rem;
+  --text-title-l--line-height: 1.75rem;
+  --text-title-l--font-weight: 700;
+  --text-title-m: 1rem;
+  --text-title-m--line-height: 1.5rem;
+  --text-title-m--letter-spacing: 0.01em;
+  --text-title-m--font-weight: 700;
+  --text-title-s: 0.875rem;
+  --text-title-s--line-height: 1.25rem;
+  --text-title-s--letter-spacing: 0.007em;
+  --text-title-s--font-weight: 700;
+  --text-body-l: 1rem;
+  --text-body-l--line-height: 1.5rem;
+  --text-body-l--letter-spacing: 0.015em;
+  --text-body-m: 0.875rem;
+  --text-body-m--line-height: 1.25rem;
+  --text-body-m--letter-spacing: 0.015em;
+  --text-body-s: 0.75rem;
+  --text-body-s--line-height: 1rem;
+  --text-body-s--letter-spacing: 0.025em;
+  --text-label-l: 0.875rem;
+  --text-label-l--line-height: 1.25rem;
+  --text-label-l--letter-spacing: 0.007em;
+  --text-label-l--font-weight: 700;
+  --text-label-m: 0.75rem;
+  --text-label-m--line-height: 1rem;
+  --text-label-m--letter-spacing: 0.03em;
+  --text-label-m--font-weight: 700;
+  --text-label-s: 0.6875rem;
+  --text-label-s--line-height: 1rem;
+  --text-label-s--letter-spacing: 0.03em;
+  --text-label-s--font-weight: 700;
 
-  --color-blue: var(--blue);
-  --color-blue-light: var(--blue-l);
-  --color-blue-dark: var(--blue-d);
+  /* Scala delle forme M3 */
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 28px;
 
-  --color-green: var(--green);
-  --color-green-light: var(--green-l);
-  --color-green-dark: var(--green-d);
+  /* Elevazione: la gerarchia la danno i surface-container; ombre solo dove M3 le prevede. */
+  --shadow-elev-1: 0 1px 2px rgb(0 0 0 / 0.3), 0 1px 3px 1px rgb(0 0 0 / 0.15);
+  --shadow-elev-2: 0 1px 2px rgb(0 0 0 / 0.3), 0 2px 6px 2px rgb(0 0 0 / 0.15);
+  --shadow-elev-3: 0 1px 3px rgb(0 0 0 / 0.3), 0 4px 8px 3px rgb(0 0 0 / 0.15);
 
-  --color-purple: var(--purple);
-  --color-purple-light: var(--purple-l);
-  --color-purple-dark: var(--purple-d);
+  --ease-standard: var(--md-sys-motion-easing-standard);
+  --ease-emphasized: var(--md-sys-motion-easing-emphasized-decelerate);
 
-  --color-gray: var(--gray);
-  --color-gray-light: var(--gray-l);
-  --color-gray-xlight: var(--gray-xl);
-
-  --color-border: var(--border);
-  --color-border-dark: var(--border-d);
-
-  --color-text: var(--text);
-  --color-text2: var(--text2);
-  --color-text3: var(--text3);
-
-  --radius-il: var(--radius);
-  --shadow-il: var(--shadow);
+  /* Classi di finestra M3: compact < 600dp ≤ medium < 1200dp ≤ expanded */
+  --breakpoint-medium: 37.5rem;
+  --breakpoint-expanded: 75rem;
 }
 
-body {
-  font-family: 'Lato', sans-serif;
-  color: var(--text);
-  background: var(--gray-xl);
+/* State layer M3: velo del colore del contenuto (hover 8%, focus/pressed 10%). */
+@utility state-layer {
+  position: relative;
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: currentColor;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--md-sys-motion-duration-short) var(--md-sys-motion-easing-standard);
+  }
+  @media (hover: hover) {
+    &:hover::before {
+      opacity: 0.08;
+    }
+  }
+  &:focus-visible::before,
+  &:active::before {
+    opacity: 0.1;
+  }
+  &:disabled::before,
+  &[aria-disabled='true']::before {
+    opacity: 0;
+  }
+}
+
+/* Area di tocco minima M3 (48dp) anche per controlli visivamente più piccoli. */
+@utility touch-target {
+  position: relative;
+  &::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: max(100%, 48px);
+    height: max(100%, 48px);
+    transform: translate(-50%, -50%);
+  }
+}
+
+@layer base {
+  body {
+    font-family: var(--font-sans);
+    color: var(--md-sys-color-on-surface);
+    background: var(--md-sys-color-surface);
+    -webkit-font-smoothing: antialiased;
+  }
+  /* Indicatore di focus M3: 3dp, colore secondary, offset 2dp. */
+  :focus-visible {
+    outline: 3px solid var(--md-sys-color-secondary);
+    outline-offset: 2px;
+  }
+  ::selection {
+    background: var(--md-sys-color-primary-container);
+  }
+  dialog::backdrop {
+    background: rgb(0 0 0 / 0.32);
+  }
+}
+
+/* Icone Material Symbols (font caricato in index.html). */
+.material-symbols-rounded {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  user-select: none;
+}
+.material-symbols-rounded.icon-filled {
+  font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 /* ── Stampa modulo MDI (MdiPrintDocument) ─────────────────────────────────

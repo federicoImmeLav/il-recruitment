@@ -18,7 +18,7 @@ export function StepPrivacy() {
   return (
     <div className="space-y-5">
       <KioskSection title="Informativa all'interessato (studenti) — Art. 13 Reg. UE 2016/679">
-        <Accordion title="📄 Leggi il testo integrale dell'informativa sulla privacy">
+        <Accordion title="Leggi il testo integrale dell'informativa sulla privacy">
           <InformativaPrivacy />
           <p>
             <em>Il Titolare del trattamento</em>
@@ -35,7 +35,7 @@ export function StepPrivacy() {
       </KioskSection>
 
       <KioskSection title="Utilizzo registrazioni vocali, filmati e immagini — Art. 13 Reg. UE 2016/679">
-        <Accordion title="📷 Leggi il testo integrale dell'informativa sull'utilizzo di immagini e riprese">
+        <Accordion title="Leggi il testo integrale dell'informativa sull'utilizzo di immagini e riprese">
           <InformativaImmagini />
           <p>
             <em>Il Titolare del trattamento</em>
@@ -43,8 +43,8 @@ export function StepPrivacy() {
             <strong>{TITOLARE_FIRMA}</strong>
           </p>
         </Accordion>
-        <p className="text-sm font-bold">
-          Il/la sottoscritto/a <span className="text-blue">{accompagnatore || '—'}</span>, preso atto dell'informativa,
+        <p className="text-body-l text-on-surface">
+          Il/la sottoscritto/a <strong className="text-primary">{accompagnatore || '—'}</strong>, preso atto dell'informativa,
           con la presente <strong>AUTORIZZA</strong> i Titolari del trattamento:
         </p>
         {CONSENSI_FOTO.map((c) => (
@@ -57,10 +57,11 @@ export function StepPrivacy() {
 
       {qualita === 'genitore' && (
         <KioskSection title="Dichiarazione in caso di firma di un solo genitore">
-          <div className="rounded-il border-[1.5px] border-[#f0c800] bg-[#fffbf0] px-4 py-4 text-sm leading-relaxed">
+          <div className="rounded-md bg-warning-container px-4 py-4 text-body-l text-on-warning-container">
+
             <p>{testoDichiarazioneSingoloGenitore(accompagnatore || '—')}</p>
           </div>
-          <p className="text-xs text-text3">Da firmare sulla copia stampata solo se firma un solo genitore.</p>
+          <p className="text-body-s text-on-surface-variant">Da firmare sulla copia stampata solo se firma un solo genitore.</p>
         </KioskSection>
       )}
     </div>

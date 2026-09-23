@@ -38,14 +38,14 @@ export function StepDatiAllievo({ precompilati }: { precompilati: ReadonlySet<ke
         />
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <p className="mb-1 text-xs font-bold uppercase tracking-wide text-text2">
-              Sesso<span className="text-red"> *</span>
+            <p className="mb-2 text-body-m text-on-surface-variant">
+              Sesso *
             </p>
             <div className="grid grid-cols-2 gap-3">
               <ChoiceItem type="radio" value="M" label={<strong>Maschio</strong>} {...register('all_sesso', obbligatorio)} />
               <ChoiceItem type="radio" value="F" label={<strong>Femmina</strong>} {...register('all_sesso', obbligatorio)} />
             </div>
-            {errors.all_sesso && <p className="mt-1 text-xs text-red">{errors.all_sesso.message}</p>}
+            {errors.all_sesso && <p className="mt-1 text-body-s text-error">{errors.all_sesso.message}</p>}
           </div>
           <InputField
             label="Data di nascita"
@@ -97,7 +97,7 @@ export function StepDatiAllievo({ precompilati }: { precompilati: ReadonlySet<ke
           <div className="sm:col-span-2">
             <CampoComune nome="all_residenza_citta" cod="all_residenza_comune_cod" prov="all_residenza_prov" label="Comune" required />
           </div>
-          <InputField label="Prov" maxLength={2} readOnly tabIndex={-1} className="bg-gray-xlight uppercase" {...register('all_residenza_prov')} />
+          <InputField label="Prov" maxLength={2} readOnly tabIndex={-1} className="[&_input]:uppercase [&_input]:text-on-surface-variant" {...register('all_residenza_prov')} />
           <InputField
             label="CAP"
             maxLength={5}

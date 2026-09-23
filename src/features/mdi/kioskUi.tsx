@@ -1,14 +1,14 @@
-import { useState, type InputHTMLAttributes, type ReactNode } from 'react'
+import { useId, useState, type InputHTMLAttributes, type ReactNode } from 'react'
 import type { FieldError } from 'react-hook-form'
+import { Icon } from '../../components/ui/Icon'
+import { SegmentedGroup, SegmentedOption } from '../../components/ui/SegmentedButton'
 
-/** Sezione con intestazione grigia (".fs/.fsh" del vecchio kiosk). */
+/** Sezione del kiosk: card con titolo (".fs/.fsh" del vecchio kiosk). */
 export function KioskSection({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="overflow-hidden rounded-il border border-border bg-white">
-      <h2 className="border-b border-border bg-gray-xlight px-4 py-3 text-xs font-black uppercase tracking-wide text-text2 sm:px-5">
-        {title}
-      </h2>
-      <div className="space-y-4 p-4 sm:p-5">{children}</div>
+    <section className="rounded-lg border border-outline-variant bg-surface-container-lowest">
+      <h2 className="px-4 pt-5 text-title-l text-on-surface sm:px-6">{title}</h2>
+      <div className="space-y-5 p-4 pt-4 sm:p-6 sm:pt-4">{children}</div>
     </section>
   )
 }
@@ -16,27 +16,28 @@ export function KioskSection({ title, children }: { title: string; children: Rea
 export function PrefillBadge({ show, label = 'precompilato' }: { show: boolean; label?: string }) {
   if (!show) return null
   return (
-    <span className="mt-1 inline-block rounded-full bg-blue-light px-2 py-0.5 text-[10px] font-bold text-blue">
-      ● {label}
+    <span className="ml-4 mt-1 inline-flex h-6 items-center gap-1 rounded-sm bg-tertiary-container px-2 text-label-s text-on-tertiary-container">
+      <Icon name="auto_awesome" size={14} />
+      {label}
     </span>
   )
 }
 
-/** Opzione a card (radio o checkbox), grande per il touch. */
+/** Opzione a card selezionabile (radio o checkbox), almeno 56dp per il touch. */
 export function ChoiceItem({
   label,
   type = 'checkbox',
   ...props
 }: InputHTMLAttributes<HTMLInputElement> & { label: ReactNode; type?: 'checkbox' | 'radio' }) {
   return (
-    <label className="flex cursor-pointer items-center gap-3 rounded-il border-[1.5px] border-border px-4 py-3 text-sm transition-colors hover:border-blue has-[:checked]:border-blue has-[:checked]:bg-blue-light">
-      <input type={type} className="h-5 w-5 shrink-0 accent-blue" {...props} />
+    <label className="state-layer flex min-h-14 cursor-pointer items-center gap-3 rounded-md border border-outline-variant px-4 py-2 text-body-l text-on-surface transition-colors has-[:checked]:border-transparent has-[:checked]:bg-secondary-container has-[:checked]:text-on-secondary-container has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-secondary">
+      <input type={type} className="h-5 w-5 shrink-0 cursor-pointer accent-primary" {...props} />
       <span className="flex-1">{label}</span>
     </label>
   )
 }
 
-/** Riga consenso con pulsanti SÌ / NO (radio con valori 'si' | 'no'). */
+/** Riga consenso con segmented button SÌ / NO (radio con valori 'si' | 'no'). */
 export function SiNoField({
   children,
   error,
@@ -46,45 +47,48 @@ export function SiNoField({
   error?: FieldError
   inputProps: InputHTMLAttributes<HTMLInputElement>
 }) {
-  const btn =
-    'cursor-pointer rounded-md border-[1.5px] border-border bg-white px-4 py-1.5 text-sm font-bold transition-colors'
   return (
     <div
-      className={`rounded-il border-[1.5px] px-4 py-3 ${error ? 'border-red bg-red-light/40' : 'border-border'}`}
+      className={`rounded-md border px-4 py-4 ${error ? 'border-error bg-error-container/40' : 'border-outline-variant'}`}
     >
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
-        <div className="flex-1 text-sm leading-relaxed">{children}</div>
-        <div className="flex shrink-0 gap-2">
-          <label
-            className={`${btn} has-[:checked]:border-green has-[:checked]:bg-green-light has-[:checked]:text-green`}
-          >
-            <input type="radio" value="si" className="sr-only" {...inputProps} />
-            SÌ
-          </label>
-          <label className={`${btn} has-[:checked]:border-red has-[:checked]:bg-red-light has-[:checked]:text-red`}>
-            <input type="radio" value="no" className="sr-only" {...inputProps} />
-            NO
-          </label>
-        </div>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="flex-1 text-body-l text-on-surface">{children}</div>
+        <SegmentedGroup label="Consenso" className="shrink-0 self-start sm:self-center">
+          <SegmentedOption value="si" label="SÌ" {...inputProps} size="lg" />
+          <SegmentedOption value="no" label="NO" {...inputProps} size="lg" />
+        </SegmentedGroup>
       </div>
-      {error && <p className="mt-2 text-xs text-red">{error.message}</p>}
+      {error && (
+        <p className="mt-2 flex items-center gap-1 text-body-s text-error">
+          <Icon name="error" size={16} filled />
+          {error.message}
+        </p>
+      )}
     </div>
   )
 }
 
+/** Pannello espandibile (testi delle informative). */
 export function Accordion({ title, children }: { title: string; children: ReactNode }) {
   const [open, setOpen] = useState(false)
+  const id = useId()
   return (
-    <div className="overflow-hidden rounded-il border border-border">
+    <div className="overflow-hidden rounded-md bg-surface-container">
       <button
         type="button"
+        aria-expanded={open}
+        aria-controls={id}
         onClick={() => setOpen((o) => !o)}
-        className="flex w-full items-center justify-between gap-3 bg-gray-xlight px-4 py-3 text-left text-sm font-bold text-text2 hover:bg-gray-light"
+        className="state-layer flex min-h-14 w-full items-center justify-between gap-3 px-4 py-2 text-left text-title-s text-on-surface"
       >
         <span>{title}</span>
-        <span aria-hidden>{open ? '▲' : '▼'}</span>
+        <Icon name="expand_more" className={`transition-transform duration-300 ease-standard ${open ? 'rotate-180' : ''}`} />
       </button>
-      {open && <div className="space-y-3 bg-white px-4 py-4 text-xs leading-relaxed text-text2">{children}</div>}
+      {open && (
+        <div id={id} className="space-y-3 bg-surface-container-lowest px-4 py-4 text-body-m text-on-surface-variant">
+          {children}
+        </div>
+      )}
     </div>
   )
 }
@@ -92,13 +96,13 @@ export function Accordion({ title, children }: { title: string; children: ReactN
 /** Riga "Milano, il ____  Firma ____" mostrata a video come promemoria della firma su carta. */
 export function FirmaPromemoria({ nome }: { nome: string }) {
   return (
-    <div className="flex flex-wrap items-end gap-4 border-t border-border pt-4 text-xs text-text3">
-      <div className="min-w-[180px] flex-1 text-sm text-text2">
-        Il/la sottoscritto/a <strong className="text-text">{nome || '—'}</strong>
+    <div className="flex flex-wrap items-end gap-4 border-t border-outline-variant pt-4 text-body-s text-on-surface-variant">
+      <div className="min-w-[180px] flex-1 text-body-m">
+        Il/la sottoscritto/a <strong className="text-on-surface">{nome || '—'}</strong>
       </div>
       <div className="min-w-[200px] flex-1 text-center">
-        <span className="font-bold uppercase tracking-wide">Firma leggibile del genitore</span>
-        <div className="mt-1 h-8 border-b-[1.5px] border-border-dark" />
+        <span className="text-label-m">Firma leggibile del genitore</span>
+        <div className="mt-1 h-8 border-b border-outline" />
         <span className="mt-1 block">(sulla copia stampata)</span>
       </div>
     </div>

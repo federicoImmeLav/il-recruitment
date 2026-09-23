@@ -1,9 +1,11 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
 import { Card } from '../../components/ui/Card'
 import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
 import { Spinner, ErrorBanner } from '../../components/ui/Spinner'
+import { Icon } from '../../components/ui/Icon'
+import { ChipSet, FilterChip } from '../../components/ui/Chip'
+import { EmptyState, PageHeader, SectionHeader } from '../../components/ui/PageHeader'
 import { CapacityGauge } from '../../components/charts/CapacityGauge'
 import { useOpenDays } from '../../hooks/useOpenDays'
 import { useBookings } from '../../hooks/useBookings'
@@ -16,11 +18,16 @@ import { riepilogoIndirizzi } from '../gruppi/gruppi'
 import { RichiesteDaApprovare } from '../bookings/RichiesteDaApprovare'
 import { ElencoIscritti } from '../bookings/ElencoIscritti'
 
-function KpiCard({ label, value, colorClass }: { label: string; value: number | string; colorClass: string }) {
+function KpiCard({ label, value, icon, tone }: { label: string; value: number | string; icon: string; tone: string }) {
   return (
-    <Card className={`border-t-4 ${colorClass}`}>
-      <p className="text-xs font-bold uppercase tracking-wide text-text3">{label}</p>
-      <p className="mt-1 text-2xl font-black text-text">{value}</p>
+    <Card variant="filled" className="!p-4">
+      <div className="flex items-center gap-2 text-on-surface-variant">
+        <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${tone}`}>
+          <Icon name={icon} size={20} />
+        </span>
+        <p className="min-w-0 truncate text-label-l">{label}</p>
+      </div>
+      <p className="mt-3 text-display-s tabular-nums text-on-surface">{value}</p>
     </Card>
   )
 }
@@ -48,46 +55,40 @@ export function MonitoringDashboardPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-lg font-bold text-text">Monitoraggio Open Day</h1>
+      <PageHeader title="Monitoraggio Open Day" subtitle="Dati in tempo reale dell’evento selezionato" />
 
       {isLoading && <Spinner />}
       {error && <ErrorBanner message="Errore nel caricamento degli Open Day." />}
 
       {aperti.length === 0 && !isLoading && (
         <Card>
-          <p className="text-sm text-text2">Nessun Open Day aperto al momento.</p>
-          <Link to="/staff/open-days" className="mt-3 inline-block">
-            <Button variant="blue">Crea un Open Day</Button>
-          </Link>
+          <EmptyState icon="event_busy">
+            <p>Nessun Open Day aperto al momento.</p>
+            <Button to="/staff/open-days" icon="add" className="mt-4">
+              Crea un Open Day
+            </Button>
+          </EmptyState>
         </Card>
       )}
 
       {aperti.length > 0 && (
         <>
-          <div className="flex flex-wrap gap-2">
+          <ChipSet label="Open Day aperti" className="-mt-4">
             {aperti.map((od) => (
-              <button
-                key={od.id}
-                onClick={() => setSelectedId(od.id)}
-                className={`rounded-full border px-3 py-1 text-sm font-bold transition-colors ${
-                  effectiveSelectedId === od.id
-                    ? 'border-orange bg-orange-light text-orange-dark'
-                    : 'border-border text-text2 hover:bg-gray-light'
-                }`}
-              >
+              <FilterChip key={od.id} selected={effectiveSelectedId === od.id} onClick={() => setSelectedId(od.id)}>
                 {new Date(od.data).toLocaleDateString('it-IT', { day: '2-digit', month: 'short' })} · {od.ora.slice(0, 5)}
-              </button>
+              </FilterChip>
             ))}
-          </div>
+          </ChipSet>
 
           {selectedOpenDay && (
             <>
-              <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
-                <KpiCard label="Da approvare" value={daApprovare} colorClass="border-red" />
-                <KpiCard label="Confermati" value={confermati} colorClass="border-green" />
-                <KpiCard label="Lista d'attesa" value={waitlist} colorClass="border-blue" />
-                <KpiCard label="Check-in" value={checkedIn} colorClass="border-orange" />
-                <KpiCard label="MDI raccolte" value={mdiList?.length ?? 0} colorClass="border-purple" />
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+                <KpiCard label="Da approvare" value={daApprovare} icon="pending_actions" tone="bg-error-container text-on-error-container" />
+                <KpiCard label="Confermati" value={confermati} icon="how_to_reg" tone="bg-success-container text-on-success-container" />
+                <KpiCard label="Lista d'attesa" value={waitlist} icon="hourglass_top" tone="bg-tertiary-container text-on-tertiary-container" />
+                <KpiCard label="Check-in" value={checkedIn} icon="where_to_vote" tone="bg-primary-container text-on-primary-container" />
+                <KpiCard label="MDI raccolte" value={mdiList?.length ?? 0} icon="assignment" tone="bg-accent-container text-on-accent-container" />
               </div>
 
               {bookings && <RichiesteDaApprovare bookings={bookings} />}
@@ -97,26 +98,26 @@ export function MonitoringDashboardPage() {
               </Card>
 
               <Card>
-                <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                  <h2 className="text-sm font-bold uppercase tracking-wide text-text2">Per indirizzo</h2>
-                  <Link to={`/staff/open-days/${selectedOpenDay.id}/gruppi`}>
-                    <Button variant="ghost" className="text-xs">
-                      Gruppi d'interesse →
+                <SectionHeader
+                  title="Per indirizzo"
+                  actions={
+                    <Button variant="text" to={`/staff/open-days/${selectedOpenDay.id}/gruppi`} trailingIcon="arrow_forward">
+                      Gruppi d'interesse
                     </Button>
-                  </Link>
-                </div>
-                <div className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
+                  }
+                />
+                <div className="grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2">
                   {perIndirizzo.map((r) => (
                     <div key={r.corsoId ?? 'senza'}>
-                      <div className="flex items-baseline justify-between gap-2 text-sm">
-                        <span className="font-bold text-text">{r.nome}</span>
-                        <span className="text-xs text-text3">
+                      <div className="flex items-baseline justify-between gap-2">
+                        <span className="text-title-s text-on-surface">{r.nome}</span>
+                        <span className="shrink-0 text-body-s text-on-surface-variant">
                           {r.iscritti} iscritti · {r.presenti} presenti
                           {(r.entrati > 0 || r.usciti > 0) && ` · +${r.entrati}/−${r.usciti}`}
                         </span>
                       </div>
                       {r.posti_max && (
-                        <div className="mt-1">
+                        <div className="mt-2">
                           <CapacityGauge value={r.iscritti} max={r.posti_max} label="Posti" />
                         </div>
                       )}
@@ -125,11 +126,11 @@ export function MonitoringDashboardPage() {
                 </div>
               </Card>
 
-              <div className="flex flex-wrap gap-2">
-                <Link to={`/staff/open-days/${selectedOpenDay.id}/iscrizioni`}>
-                  <Button variant="blue">Gestisci iscrizioni e check-in</Button>
-                </Link>
-                <Badge color={waitlist > 0 ? 'orange' : 'green'}>
+              <div className="flex flex-wrap items-center gap-3">
+                <Button to={`/staff/open-days/${selectedOpenDay.id}/iscrizioni`} icon="fact_check">
+                  Gestisci iscrizioni e check-in
+                </Button>
+                <Badge color={waitlist > 0 ? 'warning' : 'success'}>
                   {waitlist > 0 ? `${waitlist} in lista d'attesa` : 'Nessuna lista d’attesa'}
                 </Badge>
               </div>

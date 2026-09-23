@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { Modal } from '../../components/ui/Modal'
+import { Dialog } from '../../components/ui/Dialog'
 import { Button } from '../../components/ui/Button'
-import { InputField, SelectField, TextareaField } from '../../components/ui/Field'
+import { Checkbox, InputField, SelectField, TextareaField } from '../../components/ui/Field'
 import { ErrorBanner } from '../../components/ui/Spinner'
 import { useCreateOpenDay, useUpdateOpenDay } from '../../hooks/useOpenDays'
 import { useCorsi } from '../../hooks/useCorsi'
@@ -80,12 +80,13 @@ export function OpenDayFormModal({
   }
 
   return (
-    <Modal
+    <Dialog
       title={openDay ? 'Modifica Open Day' : 'Nuovo Open Day'}
+      variant="form"
       onClose={onClose}
       footer={
         <>
-          <Button variant="ghost" onClick={onClose}>
+          <Button variant="text" onClick={onClose}>
             Annulla
           </Button>
           <Button onClick={() => void handleSubmit()} disabled={!data || !ora || saving}>
@@ -118,33 +119,29 @@ export function OpenDayFormModal({
           <option value="chiuso">Chiuso</option>
           <option value="annullato">Annullato</option>
         </SelectField>
-        <div className="space-y-2 rounded-il border border-border bg-gray-xlight p-3">
-          <p className="text-xs font-bold uppercase tracking-wide text-text3">Indirizzi presentati</p>
-          <p className="text-xs text-text3">
+        <div className="rounded-md bg-surface-container-lowest p-4">
+          <p className="text-title-s text-on-surface">Indirizzi presentati</p>
+          <p className="mb-2 mt-1 text-body-s text-on-surface-variant">
             Sono quelli proposti nel form di iscrizione e i gruppi d'interesse dell'evento. Nessuno selezionato = tutti
             i corsi attivi. I posti per indirizzo sono indicativi (non bloccano le iscrizioni).
           </p>
           {corsi?.map((c) => {
             const attivo = c.id in selezione
             return (
-              <div key={c.id} className="flex items-center justify-between gap-3">
-                <label className="flex cursor-pointer items-center gap-2 text-sm text-text">
-                  <input
-                    type="checkbox"
-                    className="h-4 w-4 accent-orange"
-                    checked={attivo}
-                    onChange={(e) => toggleCorso(c.id, e.target.checked)}
-                  />
+              <div key={c.id} className="flex min-h-14 items-center justify-between gap-3">
+                <label className="-ml-2.5 flex min-w-0 cursor-pointer items-center gap-1 text-body-l text-on-surface">
+                  <Checkbox checked={attivo} onChange={(e) => toggleCorso(c.id, e.target.checked)} />
                   {c.nome}
                 </label>
                 {attivo && (
-                  <input
+                  <InputField
+                    dense
+                    label="Posti"
                     type="number"
                     min={1}
                     inputMode="numeric"
                     aria-label={`Posti per ${c.nome}`}
-                    placeholder="posti"
-                    className="w-20 rounded-il border border-border bg-white px-2 py-1 text-sm focus:border-blue focus:outline-none"
+                    className="w-24 shrink-0"
                     value={selezione[c.id]}
                     onChange={(e) => setSelezione({ ...selezione, [c.id]: e.target.value })}
                   />
@@ -153,18 +150,16 @@ export function OpenDayFormModal({
             )
           })}
         </div>
-        <div className="space-y-3 rounded-il border border-border bg-gray-xlight p-3">
-          <p className="text-xs font-bold uppercase tracking-wide text-text3">Google Modulo e messaggi</p>
+        <div className="space-y-4 rounded-md bg-surface-container-lowest p-4">
+          <p className="text-title-s text-on-surface">Google Modulo e messaggi</p>
           <InputField
             label="Etichetta modulo Google"
             value={etichetta}
             onChange={(e) => setEtichetta(e.target.value)}
             placeholder="es. Sabato 18 ottobre 2026 — ore 10:00"
+            supporting="Incolla il testo identico dell'opzione del menu nel Google Modulo: le risposte che la scelgono arrivano qui come “da approvare”."
           />
-          <p className="-mt-2 text-xs text-text3">
-            Incolla il testo identico dell'opzione del menu nel Google Modulo: le risposte che la scelgono arrivano qui
-            come “da approvare”.
-          </p>
+
           <TextareaField
             label="Luogo e indicazioni (solo se diversi dal predefinito)"
             rows={2}
@@ -190,6 +185,6 @@ export function OpenDayFormModal({
           placeholder="Visibili solo allo staff"
         />
       </div>
-    </Modal>
+    </Dialog>
   )
 }

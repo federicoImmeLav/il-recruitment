@@ -2,7 +2,9 @@ import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { FormProvider, useForm } from 'react-hook-form'
 import { Button } from '../../components/ui/Button'
-import { ErrorBanner } from '../../components/ui/Spinner'
+import { ErrorBanner, InfoBanner } from '../../components/ui/Spinner'
+import { SelectField } from '../../components/ui/Field'
+import { Icon } from '../../components/ui/Icon'
 import { useCorsi } from '../../hooks/useCorsi'
 import { useCreateMdi } from '../../hooks/useMdi'
 import { useOpenDaysPublic } from '../../hooks/useOpenDays'
@@ -37,13 +39,11 @@ function annoScolasticoInCorso(d = new Date()) {
 
 function KioskHeader() {
   return (
-    <header className="no-print sticky top-0 z-10 flex items-center justify-between gap-4 border-b-[3px] border-border bg-white px-4 py-2 shadow-sm sm:px-8">
+    <header className="no-print sticky top-0 z-10 flex items-center justify-between gap-4 bg-surface-container-lowest px-4 py-2 shadow-elev-1 sm:px-8">
       <img src="/logo-il.jpg" alt="Immaginazione e Lavoro" className="h-12 sm:h-14" />
-      <div className="text-right text-[11px] font-bold uppercase tracking-wider text-gray sm:text-xs">
-        Open Day {annoScolasticoInCorso()}
-        <span className="mt-0.5 block text-base normal-case tracking-normal text-text sm:text-xl">
-          Manifestazione d'Interesse
-        </span>
+      <div className="text-right">
+        <p className="text-label-m text-on-surface-variant">Open Day {annoScolasticoInCorso()}</p>
+        <p className="text-title-m text-on-surface sm:text-title-l">Manifestazione d'Interesse</p>
       </div>
     </header>
   )
@@ -51,28 +51,36 @@ function KioskHeader() {
 
 function Progress({ step }: { step: number }) {
   return (
-    <div className="no-print border-b border-border bg-white px-4 py-3 sm:px-8">
-      <ol className="mx-auto flex max-w-3xl items-center">
+    <div className="no-print bg-surface-container-lowest px-4 py-3 sm:px-8">
+      <ol aria-label="Passaggi" className="mx-auto flex max-w-3xl items-center">
         {STEP_TITLES.map((title, i) => {
           const stato = i < step ? 'done' : i === step ? 'active' : 'todo'
           return (
-            <li key={title} className={`flex items-center ${i < STEP_TITLES.length - 1 ? 'flex-1' : ''}`}>
+            <li
+              key={title}
+              aria-current={stato === 'active' ? 'step' : undefined}
+              className={`flex items-center ${i < STEP_TITLES.length - 1 ? 'flex-1' : ''}`}
+            >
               <span
-                className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-black ${
-                  stato === 'done' ? 'bg-green text-white' : stato === 'active' ? 'bg-blue text-white' : 'bg-border text-text3'
+                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-label-l ${
+                  stato === 'done'
+                    ? 'bg-primary-container text-on-primary-container'
+                    : stato === 'active'
+                      ? 'bg-primary text-on-primary'
+                      : 'bg-surface-container-highest text-on-surface-variant'
                 }`}
               >
-                {stato === 'done' ? '✓' : i + 1}
+                {stato === 'done' ? <Icon name="check" size={18} label="completato" /> : i + 1}
               </span>
               <span
-                className={`ml-2 whitespace-nowrap text-xs font-bold ${
-                  stato === 'done' ? 'text-green' : stato === 'active' ? 'text-blue' : 'text-text3'
-                } ${stato === 'active' ? '' : 'hidden md:inline'}`}
+                className={`ml-2 whitespace-nowrap text-label-l ${
+                  stato === 'active' ? 'text-on-surface' : 'hidden text-on-surface-variant md:inline'
+                }`}
               >
                 {title}
               </span>
               {i < STEP_TITLES.length - 1 && (
-                <span className={`mx-2 h-0.5 flex-1 ${i < step ? 'bg-green' : 'bg-border'}`} />
+                <span className={`mx-2 h-0.5 flex-1 rounded-full ${i < step ? 'bg-primary' : 'bg-outline-variant'}`} />
               )}
             </li>
           )
@@ -186,33 +194,31 @@ export function MdiKioskPage() {
   ]
 
   return (
-    <div className="min-h-screen bg-[#f5f6f8]">
+    <div className="min-h-dvh bg-surface-container-low">
       <KioskHeader />
       <Progress step={step} />
 
       <main className="no-print mx-auto max-w-3xl px-4 pb-20 pt-8 sm:px-6">
-        <h1 className="text-2xl font-black text-text sm:text-[26px]">{titoli[step]}</h1>
-        {STEP_SUB[step] && <p className="mb-6 mt-1 text-[15px] text-text2">{STEP_SUB[step]}</p>}
+        <h1 className="text-headline-m text-on-surface">{titoli[step]}</h1>
+        {STEP_SUB[step] && <p className="mb-6 mt-2 text-body-l text-on-surface-variant">{STEP_SUB[step]}</p>}
 
         {step === 0 && !openDayIdParam && openDaysOggi.length > 1 && (
-          <label className="mb-4 block">
-            <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-text2">Open Day in corso</span>
-            <select
-              value={openDayId ?? ''}
-              onChange={(e) => {
-                setOpenDayScelto(e.target.value || undefined)
-                selezionaIscritto(null)
-              }}
-              className="w-full rounded-il border border-border bg-white px-3 py-2 text-sm"
-            >
-              <option value="">Seleziona…</option>
-              {openDaysOggi.map((o) => (
-                <option key={o.id} value={o.id}>
-                  {o.ora.slice(0, 5)} — {o.tipo === 'OpenDay2e' ? 'Open Day 2ª edizione' : 'Open Day'}
-                </option>
-              ))}
-            </select>
-          </label>
+          <SelectField
+            label="Open Day in corso"
+            className="mb-6"
+            value={openDayId ?? ''}
+            onChange={(e) => {
+              setOpenDayScelto(e.target.value || undefined)
+              selezionaIscritto(null)
+            }}
+          >
+            <option value="">Seleziona…</option>
+            {openDaysOggi.map((o) => (
+              <option key={o.id} value={o.id}>
+                {o.ora.slice(0, 5)} — {o.tipo === 'OpenDay2e' ? 'Open Day 2ª edizione' : 'Open Day'}
+              </option>
+            ))}
+          </SelectField>
         )}
 
         <FormProvider {...methods}>
@@ -230,45 +236,47 @@ export function MdiKioskPage() {
             {step === 4 && <StepPrivacy />}
 
             {step === 5 && (
-              <div className="rounded-il border border-border bg-white px-6 py-12 text-center">
-                <div className="mb-4 text-6xl" aria-hidden>
-                  📋
-                </div>
+              <div className="flex flex-col items-center rounded-lg border border-outline-variant bg-surface-container-lowest px-6 py-12 text-center">
+                <span
+                  className={`mb-6 flex h-20 w-20 items-center justify-center rounded-full ${
+                    inviata ? 'bg-success-container text-on-success-container' : 'bg-primary-container text-on-primary-container'
+                  }`}
+                >
+                  <Icon name={inviata ? 'task_alt' : 'assignment'} size={44} />
+                </span>
                 {!inviata ? (
                   <>
-                    <p className="mb-8 text-base text-text2">
+                    <p className="mb-8 max-w-lg text-body-l text-on-surface-variant">
                       La manifestazione d'interesse è stata compilata.
                       <br />
                       Premi il pulsante per inviarla e stamparla: l'operatore recupererà il modulo e farà apporre la
                       firma olografa.
                     </p>
                     {submitError && (
-                      <div className="mb-4 text-left">
+                      <div className="mb-4 w-full text-left">
                         <ErrorBanner message={submitError} />
                       </div>
                     )}
                     <Button
-                      type="button"
-                      className="rounded-[10px] px-10 py-4 text-lg"
+                      size="lg"
+                      icon="print"
                       disabled={createMdi.isPending}
                       onClick={() => void handleSubmit(invia)()}
                     >
-                      {createMdi.isPending ? 'Invio in corso…' : '🖨  Invia e Stampa'}
+                      {createMdi.isPending ? 'Invio in corso…' : 'Invia e stampa'}
                     </Button>
                   </>
                 ) : (
                   <>
-                    <div className="mx-auto max-w-md rounded-il border border-border bg-[#f5f6f8] p-5 text-base text-text2">
-                      ✅ Modulo inviato.
-                      <br />
-                      Recupera il documento stampato, fai apporre la firma e archivia la copia.
-                    </div>
-                    <div className="mt-6 flex flex-col items-center gap-3">
-                      <Button type="button" variant="ghost" onClick={stampa}>
-                        🖨 Stampa di nuovo
+                    <InfoBanner tone="success" icon="check_circle" className="max-w-md text-left !text-body-l">
+                      <strong>Modulo inviato.</strong> Recupera il documento stampato, fai apporre la firma e archivia la copia.
+                    </InfoBanner>
+                    <div className="mt-8 flex flex-col items-center gap-3">
+                      <Button size="lg" icon="add" onClick={nuovaMdi}>
+                        Nuova Manifestazione di Interesse
                       </Button>
-                      <Button type="button" variant="success" className="rounded-[10px] px-9 py-3.5 text-base" onClick={nuovaMdi}>
-                        ➕ Inserisci una nuova Manifestazione di Interesse
+                      <Button variant="text" icon="print" onClick={stampa}>
+                        Stampa di nuovo
                       </Button>
                     </div>
                   </>
@@ -277,16 +285,17 @@ export function MdiKioskPage() {
             )}
 
             {step > 0 && !inviata && (
-              <div className="flex justify-end gap-3 pt-2">
-                <Button type="button" variant="ghost" className="px-7 py-3 text-[15px]" onClick={indietro}>
-                  ← Indietro
+              <div className="flex justify-between gap-3 pt-2 sm:justify-end">
+                <Button size="lg" variant="outlined" icon="arrow_back" onClick={indietro}>
+                  Indietro
                 </Button>
                 {step < 5 && (
-                  <Button type="button" variant="blue" className="px-7 py-3 text-[15px]" onClick={() => void avanti()}>
-                    Avanti →
+                  <Button size="lg" trailingIcon="arrow_forward" onClick={() => void avanti()}>
+                    Avanti
                   </Button>
                 )}
               </div>
+
             )}
           </form>
         </FormProvider>

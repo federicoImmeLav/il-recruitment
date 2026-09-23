@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useController, useFormContext, useWatch } from 'react-hook-form'
 import { Autocomplete } from '../../components/ui/Autocomplete'
+import { Icon } from '../../components/ui/Icon'
 import { InputField, SelectField } from '../../components/ui/Field'
 import { analizzaCf } from '../../lib/codiceFiscale'
 import {
@@ -91,7 +92,7 @@ export function CampoCodiceFiscale({ campo, campi, label }: { campo: CampoTesto;
         autoCapitalize="characters"
         autoCorrect="off"
         spellCheck={false}
-        className="font-mono uppercase tracking-wider"
+        className="[&_input]:font-mono [&_input]:uppercase [&_input]:tracking-wider"
         error={errore}
         {...reg}
         onChange={(e) => {
@@ -100,13 +101,13 @@ export function CampoCodiceFiscale({ campo, campi, label }: { campo: CampoTesto;
         }}
       />
       {esito.stato === 'valido' && compilati && incoerenze.length === 0 && (
-        <p className="mt-1 text-xs text-green">✓ Sesso, data e luogo di nascita compilati dal codice fiscale</p>
+        <p className="mt-1 flex items-start gap-1 px-4 text-body-s text-success"><Icon name="check_circle" size={16} filled />Sesso, data e luogo di nascita compilati dal codice fiscale</p>
       )}
       {esito.stato === 'non_standard' && (
-        <p className="mt-1 text-xs text-orange-dark">Codice non standard (es. provvisorio): verrà accettato così com'è.</p>
+        <p className="mt-1 flex items-start gap-1 px-4 text-body-s text-on-warning-container">Codice non standard (es. provvisorio): verrà accettato così com'è.</p>
       )}
       {incoerenze.length > 0 && (
-        <p className="mt-1 text-xs text-orange-dark">
+        <p className="mt-1 flex items-start gap-1 px-4 text-body-s text-on-warning-container">
           Attenzione: {incoerenze.join(' e ')} non corrispondono al codice fiscale. Controlla.
         </p>
       )}
@@ -162,7 +163,7 @@ export function CampoComune({
       chiave={(c) => c.codice}
       renderItem={(c) => (
         <>
-          <span className="font-bold">{c.nome}</span> <span className="text-text3">({c.prov})</span>
+          <span className="font-bold">{c.nome}</span> <span className="text-on-surface-variant">({c.prov})</span>
         </>
       )}
       onTesto={(t) => {
@@ -245,8 +246,8 @@ export function CampoLuogoNascita({
   return (
     <div className="space-y-3">
       <div>
-        <p className="mb-1 text-xs font-bold uppercase tracking-wide text-text2">
-          Nato/a in<span className="text-red"> *</span>
+        <p className="mb-2 text-body-m text-on-surface-variant">
+          Nato/a in *
         </p>
         <div className="grid grid-cols-2 gap-3">
           <ChoiceItem type="radio" value="italia" label={<strong>Italia</strong>} {...register(nascita)} />
@@ -283,7 +284,7 @@ export function CampoScuolaProvenienza() {
       renderItem={(s) => (
         <>
           <span className="block font-bold">{s.nome}</span>
-          <span className="block text-xs text-text3">
+          <span className="block text-body-s text-on-surface-variant">
             {s.comune} · {s.codice}
           </span>
         </>
@@ -300,11 +301,11 @@ export function CampoScuolaProvenienza() {
       vuoto="Nessuna scuola trovata: puoi lasciare il nome scritto così"
       hint={
         cod ? (
-          <p className="mt-1 text-xs text-green">
-            ✓ Scuola dell’elenco ministeriale: {scuole?.find((s) => s.codice === cod)?.comune} · {cod}
+          <p className="mt-1 flex items-start gap-1 px-4 text-body-s text-success">
+            <Icon name="check_circle" size={16} filled />Scuola dell’elenco ministeriale: {scuole?.find((s) => s.codice === cod)?.comune} · {cod}
           </p>
         ) : field.value.trim() ? (
-          <p className="mt-1 text-xs text-text3">Se possibile scegli la scuola dall’elenco che compare mentre scrivi.</p>
+          <p className="mt-1 flex items-start gap-1 px-4 text-body-s text-on-surface-variant">Se possibile scegli la scuola dall’elenco che compare mentre scrivi.</p>
         ) : null
       }
     />

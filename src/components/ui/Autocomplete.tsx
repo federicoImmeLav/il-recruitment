@@ -1,4 +1,6 @@
 import { useId, useState, type ReactNode } from 'react'
+import { FieldShell } from './Field'
+import { fieldAria, fieldInputClass } from './fieldUtils'
 
 interface AutocompleteProps<T> {
   label: string
@@ -49,20 +51,55 @@ export function Autocomplete<T>({
   }
 
   return (
-    <div className="relative">
-      <label htmlFor={id} className="mb-1 block text-xs font-bold uppercase tracking-wide text-text2">
-        {label}
-        {required && <span className="text-red"> *</span>}
-      </label>
+    <FieldShell
+      id={id}
+      label={label}
+      required={required}
+      error={error}
+      hint={hint}
+      alwaysFloat={!!placeholder}
+      trailing={
+        mostraLista && (
+          <ul
+            id={`${id}-lista`}
+            role="listbox"
+            className="absolute inset-x-0 top-full z-30 mt-1 max-h-72 overflow-y-auto rounded-xs bg-surface-container py-2 shadow-elev-2"
+          >
+            {caricamento && <li className="px-4 py-3 text-body-m text-on-surface-variant">Caricamento elenco…</li>}
+            {!caricamento && items.length === 0 && (
+              <li className="px-4 py-3 text-body-m text-on-surface-variant">{vuoto ?? 'Nessun risultato'}</li>
+            )}
+            {items.map((item, i) => (
+              <li
+                key={chiave(item)}
+                role="option"
+                aria-selected={i === attivo}
+                onMouseDown={(e) => {
+                  e.preventDefault()
+                  scegli(item)
+                }}
+                onMouseEnter={() => setAttivo(i)}
+                className={`flex min-h-12 cursor-pointer items-center px-4 py-2 text-body-l text-on-surface ${
+                  i === attivo ? 'bg-on-surface/8' : ''
+                }`}
+              >
+                {renderItem(item)}
+              </li>
+            ))}
+          </ul>
+        )
+      }
+    >
       <input
         id={id}
+        {...fieldAria(id, error)}
         role="combobox"
         aria-expanded={mostraLista}
         aria-controls={`${id}-lista`}
         aria-autocomplete="list"
         autoComplete="off"
         value={value}
-        placeholder={placeholder}
+        placeholder={placeholder ?? ' '}
         onChange={(e) => {
           onTesto(e.target.value)
           setAperto(true)
@@ -89,39 +126,8 @@ export function Autocomplete<T>({
             setAperto(false)
           }
         }}
-        className="w-full rounded-il border border-border bg-white px-3 py-2 text-sm text-text focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/20"
+        className={fieldInputClass()}
       />
-      {mostraLista && (
-        <ul
-          id={`${id}-lista`}
-          role="listbox"
-          className="absolute z-30 mt-1 max-h-72 w-full overflow-y-auto rounded-il border border-border bg-white shadow-il"
-        >
-          {caricamento && <li className="px-3 py-2 text-sm text-text3">Caricamento elenco…</li>}
-          {!caricamento && items.length === 0 && (
-            <li className="px-3 py-2 text-sm text-text3">{vuoto ?? 'Nessun risultato'}</li>
-          )}
-          {items.map((item, i) => (
-            <li
-              key={chiave(item)}
-              role="option"
-              aria-selected={i === attivo}
-              onMouseDown={(e) => {
-                e.preventDefault()
-                scegli(item)
-              }}
-              onMouseEnter={() => setAttivo(i)}
-              className={`cursor-pointer border-b border-border px-3 py-2.5 text-sm last:border-b-0 ${
-                i === attivo ? 'bg-blue-light' : ''
-              }`}
-            >
-              {renderItem(item)}
-            </li>
-          ))}
-        </ul>
-      )}
-      {hint}
-      {error && <p className="mt-1 text-xs text-red">{error}</p>}
-    </div>
+    </FieldShell>
   )
 }

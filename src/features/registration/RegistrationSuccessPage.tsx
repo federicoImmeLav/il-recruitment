@@ -1,4 +1,5 @@
-import { Link, useLocation, useParams } from 'react-router-dom'
+import { useLocation, useParams } from 'react-router-dom'
+import { Icon } from '../../components/ui/Icon'
 import { PublicLayout } from '../../components/layout/PublicLayout'
 import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
@@ -12,18 +13,25 @@ export function RegistrationSuccessPage() {
 
   return (
     <PublicLayout>
-      <Card className="text-center">
-        <h1 className="text-lg font-bold text-text">
+      <Card className="flex flex-col items-center text-center">
+        <span
+          className={`mb-4 flex h-16 w-16 items-center justify-center rounded-full ${
+            isWaitlist ? 'bg-warning-container text-on-warning-container' : 'bg-success-container text-on-success-container'
+          }`}
+        >
+          <Icon name={isWaitlist ? 'hourglass_top' : 'check_circle'} size={36} filled />
+        </span>
+        <h1 className="text-headline-s text-on-surface">
           {isWaitlist ? 'Sei in lista d’attesa' : 'Iscrizione confermata!'}
         </h1>
-        <p className="mt-2 text-sm text-text2">
+        <p className="mt-2 text-body-l text-on-surface-variant">
           {isWaitlist
             ? 'I posti disponibili sono esauriti: ti contatteremo se si libererà un posto.'
             : 'Ti aspettiamo all’Open Day. Riceverai eventuali comunicazioni ai contatti forniti.'}
         </p>
-        <Link to={`/mdi/kiosk/${openDayId}`} className="mt-6 inline-block">
-          <Button variant="blue">Compila la Manifestazione di Interesse</Button>
-        </Link>
+        <Button to={`/mdi/kiosk/${openDayId}`} icon="edit_note" className="mt-6">
+          Compila la Manifestazione di Interesse
+        </Button>
       </Card>
     </PublicLayout>
   )

@@ -1,7 +1,10 @@
 import { useState } from 'react'
 import { Card } from '../../components/ui/Card'
 import { Badge } from '../../components/ui/Badge'
-import { InputField, CheckboxField } from '../../components/ui/Field'
+import { ChipSet, FilterChip } from '../../components/ui/Chip'
+import { Icon } from '../../components/ui/Icon'
+import { List, ListItem } from '../../components/ui/List'
+import { EmptyState, PageHeader } from '../../components/ui/PageHeader'
 import { Spinner, ErrorBanner } from '../../components/ui/Spinner'
 import { useMdiList } from '../../hooks/useMdi'
 import { useCorsi } from '../../hooks/useCorsi'
@@ -21,46 +24,64 @@ export function MdiListPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-lg font-bold text-text">Manifestazioni di Interesse</h1>
-        <Button variant="blue" onClick={() => setExportAperto(true)}>
-          ⬇ Esporta per INNOVAPLAN
-        </Button>
-      </div>
+      <PageHeader
+        title="Manifestazioni di Interesse"
+        actions={
+          <Button variant="tonal" icon="download" onClick={() => setExportAperto(true)}>
+            Esporta per INNOVAPLAN
+          </Button>
+        }
+      />
 
-      <Card className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div className="w-full sm:max-w-xs">
-          <InputField label="Cerca allievo/a" placeholder="Cognome o nome" value={ricerca} onChange={(e) => setRicerca(e.target.value)} />
-        </div>
-        <CheckboxField label="Solo da esportare su INNOVAPLAN" checked={soloDaEsportare} onChange={(e) => setSoloDaEsportare(e.target.checked)} />
-      </Card>
+      <div className="space-y-2">
+        {/* Search bar M3 */}
+        <label className="flex h-14 w-full max-w-xl items-center gap-4 rounded-full bg-surface-container-high px-4 text-on-surface-variant focus-within:outline-3 focus-within:outline-secondary">
+          <Icon name="search" />
+          <input
+            type="search"
+            aria-label="Cerca allievo/a"
+            placeholder="Cerca per cognome o nome"
+            value={ricerca}
+            onChange={(e) => setRicerca(e.target.value)}
+            className="h-full min-w-0 flex-1 bg-transparent text-body-l text-on-surface outline-none placeholder:text-on-surface-variant"
+          />
+        </label>
+        <ChipSet label="Filtri MDI">
+          <FilterChip selected={soloDaEsportare} onClick={() => setSoloDaEsportare((v) => !v)}>
+            Solo da esportare su INNOVAPLAN
+          </FilterChip>
+        </ChipSet>
+      </div>
 
       {isLoading && <Spinner />}
       {error && <ErrorBanner message="Errore nel caricamento delle MDI." />}
 
-      <Card>
-        {mdiList?.length === 0 && <p className="text-sm text-text3">Nessuna MDI trovata.</p>}
-        <div className="divide-y divide-border">
+      <Card className="!py-2">
+        {mdiList?.length === 0 && <EmptyState icon="search_off">Nessuna MDI trovata.</EmptyState>}
+        <List>
           {mdiList?.map((m) => (
-            <button
+            <ListItem
               key={m.id}
               onClick={() => setSelectedId(m.id)}
-              className="flex w-full flex-col gap-1 py-3 text-left transition-colors hover:bg-gray-light sm:flex-row sm:items-center sm:justify-between"
-            >
-              <div>
-                <p className="font-bold text-text">
+              leading={
+                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-container text-title-m text-on-primary-container">
+                  {m.all_cognome.charAt(0)}
+                </span>
+              }
+              headline={
+                <span className="text-title-s">
                   {m.all_cognome} {m.all_nome}
-                </p>
-                <p className="text-xs text-text3">
-                  {corsoNome(m.corso_pref1_id)} · {new Date(m.created_at).toLocaleDateString('it-IT')}
-                </p>
-              </div>
-              <Badge color={m.esportato_innovaplan ? 'green' : 'orange'}>
-                {m.esportato_innovaplan ? 'Esportata' : 'Da esportare'}
-              </Badge>
-            </button>
+                </span>
+              }
+              supporting={`${corsoNome(m.corso_pref1_id)} · ${new Date(m.created_at).toLocaleDateString('it-IT')}`}
+              trailing={
+                <Badge color={m.esportato_innovaplan ? 'success' : 'warning'}>
+                  {m.esportato_innovaplan ? 'Esportata' : 'Da esportare'}
+                </Badge>
+              }
+            />
           ))}
-        </div>
+        </List>
       </Card>
 
       {selectedId && <MdiDetailDrawer id={selectedId} onClose={() => setSelectedId(null)} />}

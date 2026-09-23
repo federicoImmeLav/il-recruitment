@@ -1,20 +1,22 @@
 import type { ReactNode } from 'react'
 
-type Color = 'green' | 'orange' | 'blue' | 'gray' | 'red' | 'purple'
+/** Etichetta di stato (non interattiva) sui container color M3. */
+export type BadgeColor = 'success' | 'primary' | 'tertiary' | 'neutral' | 'error' | 'accent' | 'warning'
 
-const COLOR_CLASSES: Record<Color, string> = {
-  green: 'bg-green-light text-green-dark',
-  orange: 'bg-orange-light text-orange-dark',
-  blue: 'bg-blue-light text-blue-dark',
-  gray: 'bg-gray-light text-text2',
-  red: 'bg-red-light text-red-dark',
-  purple: 'bg-purple-light text-purple-dark',
+const COLOR_CLASSES: Record<BadgeColor, string> = {
+  success: 'bg-success-container text-on-success-container',
+  primary: 'bg-primary-container text-on-primary-container',
+  tertiary: 'bg-tertiary-container text-on-tertiary-container',
+  neutral: 'bg-surface-container-highest text-on-surface-variant',
+  error: 'bg-error-container text-on-error-container',
+  accent: 'bg-accent-container text-on-accent-container',
+  warning: 'bg-warning-container text-on-warning-container',
 }
 
-export function Badge({ color, children }: { color: Color; children: ReactNode }) {
+export function Badge({ color, children }: { color: BadgeColor; children: ReactNode }) {
   return (
     <span
-      className={`inline-block whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-bold ${COLOR_CLASSES[color]}`}
+      className={`inline-flex h-6 items-center whitespace-nowrap rounded-sm px-2 text-label-m ${COLOR_CLASSES[color]}`}
     >
       {children}
     </span>

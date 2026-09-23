@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Modal } from '../../components/ui/Modal'
+import { Dialog } from '../../components/ui/Dialog'
 import { Button } from '../../components/ui/Button'
 import { InputField, SelectField } from '../../components/ui/Field'
 import { useCreateEdizione } from '../../hooks/useEdizioni'
@@ -25,12 +25,12 @@ export function EdizioneFormModal({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <Modal
+    <Dialog
       title="Nuova edizione"
       onClose={onClose}
       footer={
         <>
-          <Button variant="ghost" onClick={onClose}>
+          <Button variant="text" onClick={onClose}>
             Annulla
           </Button>
           <Button onClick={() => void handleSubmit()} disabled={!nome || !anno || createEdizione.isPending}>
@@ -74,6 +74,6 @@ export function EdizioneFormModal({ onClose }: { onClose: () => void }) {
           <option value="chiusa">Chiusa</option>
         </SelectField>
       </div>
-    </Modal>
+    </Dialog>
   )
 }

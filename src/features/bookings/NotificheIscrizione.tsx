@@ -1,4 +1,5 @@
 import { Badge } from '../../components/ui/Badge'
+import { Button } from '../../components/ui/Button'
 import { useAggiornaNotifica } from '../../hooks/useNotifiche'
 import { TIPO_NOTIFICA_LABEL } from '../../lib/constants'
 import { linkWhatsapp } from '../../lib/messaggi'
@@ -14,13 +15,13 @@ const CANALE_BREVE: Record<Notifica['canale'], string> = {
 function statoBadge(n: Notifica) {
   switch (n.stato) {
     case 'inviata':
-      return <Badge color="green">✓ inviata</Badge>
+      return <Badge color="success">inviata</Badge>
     case 'in_coda':
-      return <Badge color="blue">in invio…</Badge>
+      return <Badge color="tertiary">in invio…</Badge>
     case 'manuale':
-      return <Badge color="orange">da inviare a mano</Badge>
+      return <Badge color="warning">da inviare a mano</Badge>
     default:
-      return <Badge color="red">errore</Badge>
+      return <Badge color="error">errore</Badge>
   }
 }
 
@@ -30,40 +31,41 @@ export function NotificheIscrizione({ booking, notifiche }: { booking: Booking; 
   if (notifiche.length === 0) return null
 
   return (
-    <ul className="mt-2 space-y-1.5">
+    <ul className="mt-2 space-y-1">
       {notifiche.map((n) => {
         const whatsappPossibile = n.stato === 'manuale' || n.stato === 'errore'
         return (
-          <li key={n.id} className="flex flex-wrap items-center gap-2 text-xs text-text2">
-            <span className="font-bold">
+          <li key={n.id} className="flex flex-wrap items-center gap-2 text-body-s text-on-surface-variant">
+            <span className="text-label-m">
               {TIPO_NOTIFICA_LABEL[n.tipo]} via {CANALE_BREVE[n.canale]}
             </span>
             {statoBadge(n)}
             {n.stato === 'errore' && n.errore && (
-              <span className="text-red" title={n.errore}>
+              <span className="text-error" title={n.errore}>
                 {n.errore.length > 60 ? `${n.errore.slice(0, 60)}…` : n.errore}
               </span>
             )}
             {whatsappPossibile && (
-              <a
+              <Button
                 href={linkWhatsapp(booking.telefono, n.testo)}
                 target="_blank"
                 rel="noreferrer"
+                icon="chat"
+                className="!bg-whatsapp !text-on-whatsapp"
                 onClick={() => void aggiorna.mutateAsync({ notifica: n, azione: 'inviata' })}
-                className="rounded-md bg-[#25D366] px-2 py-1 font-bold text-white hover:opacity-90"
               >
                 Invia su WhatsApp
-              </a>
+              </Button>
             )}
             {n.stato === 'errore' && n.canale !== 'whatsapp_manuale' && (
-              <button
-                type="button"
+              <Button
+                variant="text"
+                icon="refresh"
                 disabled={aggiorna.isPending}
                 onClick={() => void aggiorna.mutateAsync({ notifica: n, azione: 'riprova' })}
-                className="font-bold text-blue hover:underline disabled:opacity-50"
               >
                 Riprova
-              </button>
+              </Button>
             )}
           </li>
         )

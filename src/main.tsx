@@ -6,13 +6,16 @@ import './index.css'
 import App from './App.tsx'
 import { queryClient } from './lib/queryClient'
 import { AuthProvider } from './features/auth/AuthProvider'
+import { SnackbarProvider } from './components/ui/Snackbar'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <AuthProvider>
-          <App />
+          <SnackbarProvider>
+            <App />
+          </SnackbarProvider>
         </AuthProvider>
       </BrowserRouter>
     </QueryClientProvider>

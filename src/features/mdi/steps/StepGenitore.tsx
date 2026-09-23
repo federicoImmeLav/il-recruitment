@@ -27,14 +27,14 @@ export function StepGenitore({ precompilati }: { precompilati: ReadonlySet<keyof
           <InputField label="Nome" required error={errors.acc_nome?.message} hint={badge('acc_nome')} {...register('acc_nome', obbligatorio)} />
         </div>
         <div>
-          <p className="mb-1 text-xs font-bold uppercase tracking-wide text-text2">
-            In qualità di<span className="text-red"> *</span>
+          <p className="mb-2 text-body-m text-on-surface-variant">
+            In qualità di *
           </p>
           <div className="grid grid-cols-2 gap-3">
             <ChoiceItem type="radio" value="genitore" label={<strong>Genitore</strong>} {...register('acc_qualita', obbligatorio)} />
             <ChoiceItem type="radio" value="tutore" label={<strong>Tutore</strong>} {...register('acc_qualita', obbligatorio)} />
           </div>
-          {errors.acc_qualita && <p className="mt-1 text-xs text-red">{errors.acc_qualita.message}</p>}
+          {errors.acc_qualita && <p className="mt-1 text-body-s text-error">{errors.acc_qualita.message}</p>}
         </div>
         <CampoCodiceFiscale
           campo="acc_codice_fiscale"
@@ -50,14 +50,14 @@ export function StepGenitore({ precompilati }: { precompilati: ReadonlySet<keyof
         />
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <p className="mb-1 text-xs font-bold uppercase tracking-wide text-text2">
-              Sesso<span className="text-red"> *</span>
+            <p className="mb-2 text-body-m text-on-surface-variant">
+              Sesso *
             </p>
             <div className="grid grid-cols-2 gap-3">
               <ChoiceItem type="radio" value="M" label={<strong>Maschio</strong>} {...register('acc_sesso', obbligatorio)} />
               <ChoiceItem type="radio" value="F" label={<strong>Femmina</strong>} {...register('acc_sesso', obbligatorio)} />
             </div>
-            {errors.acc_sesso && <p className="mt-1 text-xs text-red">{errors.acc_sesso.message}</p>}
+            {errors.acc_sesso && <p className="mt-1 text-body-s text-error">{errors.acc_sesso.message}</p>}
           </div>
           <InputField
             label="Data di nascita"
@@ -129,7 +129,7 @@ export function StepGenitore({ precompilati }: { precompilati: ReadonlySet<keyof
                   attivo={residenzaPropria}
                 />
               </div>
-              <InputField label="Prov" maxLength={2} readOnly tabIndex={-1} className="bg-gray-xlight uppercase" {...register('acc_residenza_prov')} />
+              <InputField label="Prov" maxLength={2} readOnly tabIndex={-1} className="[&_input]:uppercase [&_input]:text-on-surface-variant" {...register('acc_residenza_prov')} />
               <InputField
                 label="CAP"
                 maxLength={5}

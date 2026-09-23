@@ -1,8 +1,10 @@
 import { useMemo, useState } from 'react'
 import { Button } from '../../../components/ui/Button'
 import { InputField, SelectField } from '../../../components/ui/Field'
-import { Modal } from '../../../components/ui/Modal'
-import { ErrorBanner, Spinner } from '../../../components/ui/Spinner'
+import { Dialog } from '../../../components/ui/Dialog'
+import { ErrorBanner, InfoBanner, Spinner } from '../../../components/ui/Spinner'
+import { Icon } from '../../../components/ui/Icon'
+import { useSnackbar } from '../../../components/ui/Snackbar'
 import { useCorsi } from '../../../hooks/useCorsi'
 import { useMdiList, useSegnaEsportate } from '../../../hooks/useMdi'
 import { useImpostazioni } from '../../../hooks/useNotifiche'
@@ -24,6 +26,7 @@ export function ExportInnovaplanModal({ onClose }: { onClose: () => void }) {
   const { data: imp } = useImpostazioni()
   const { data: openDays } = useOpenDays()
   const segna = useSegnaEsportate()
+  const snackbar = useSnackbar()
 
   const [selezione, setSelezione] = useState<Selezione>('da_esportare')
   const [anno, setAnno] = useState(annoScolasticoIscrizione())
@@ -63,32 +66,34 @@ export function ExportInnovaplanModal({ onClose }: { onClose: () => void }) {
     if (!scaricate || !profile) return
     await segna.mutateAsync({ ids: scaricate, staffId: profile.id })
     setSegnate(true)
+    snackbar(`${scaricate.length} MDI segnate come esportate su INNOVAPLAN`)
   }
 
   const daSegnare = scaricate?.length ?? 0
 
   return (
-    <Modal
+    <Dialog
       title="Esporta per INNOVAPLAN"
+      variant="form"
       onClose={onClose}
       footer={
         <>
-          <Button variant="ghost" onClick={onClose}>
+          <Button variant="text" onClick={onClose}>
             Chiudi
           </Button>
-          <Button variant="blue" disabled={!ctx || righe.length === 0} onClick={scarica}>
-            ⬇ Scarica CSV ({righe.length})
+          <Button icon="download" disabled={!ctx || righe.length === 0} onClick={scarica}>
+            Scarica CSV ({righe.length})
           </Button>
         </>
       }
     >
-      <div className="space-y-4 text-sm">
-        <p className="text-text2">
+      <div className="space-y-4">
+        <p>
           Genera il file nel formato <strong>“Alunni e scelte”</strong> (stesse colonne dell’export SIDI) da caricare su
           INNOVAPLAN per creare l’anagrafica.
         </p>
 
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <SelectField
             label="Quali MDI"
             value={selezione}
@@ -112,11 +117,7 @@ export function ExportInnovaplanModal({ onClose }: { onClose: () => void }) {
             max={2100}
             value={anno}
             onChange={(e) => setAnno(Number(e.target.value))}
-            hint={
-              <p className="mt-1 text-xs text-text3">
-                Iscrizione per il {anno}/{String((anno + 1) % 100).padStart(2, '0')}
-              </p>
-            }
+            supporting={`Iscrizione per il ${anno}/${String((anno + 1) % 100).padStart(2, '0')}`}
           />
         </div>
 
@@ -124,20 +125,22 @@ export function ExportInnovaplanModal({ onClose }: { onClose: () => void }) {
         {error && <ErrorBanner message="Errore nel caricamento delle MDI." />}
 
         {corsiSenzaCodice.length > 0 && (
-          <div className="rounded-il border-l-4 border-orange bg-orange-light px-3 py-2 text-orange-dark">
+          <InfoBanner tone="warning" icon="warning">
             Manca il codice ministeriale per: {corsiSenzaCodice.map((c) => c.nome).join(', ')}. Impostalo in{' '}
             <strong>Impostazioni → Dati per INNOVAPLAN</strong>, altrimenti le colonne dell’indirizzo resteranno vuote.
-          </div>
+          </InfoBanner>
         )}
 
-        {righe.length === 0 && !isLoading && <p className="text-text3">Nessuna MDI da esportare con questa scelta.</p>}
+        {righe.length === 0 && !isLoading && <p>Nessuna MDI da esportare con questa scelta.</p>}
 
         {incomplete.length > 0 && (
-          <details className="rounded-il border border-border bg-gray-xlight px-3 py-2">
-            <summary className="cursor-pointer font-bold text-text2">
-              ⚠ {incomplete.length} MDI con dati mancanti (verranno esportate comunque)
+          <details className="group rounded-md bg-surface-container-lowest">
+            <summary className="state-layer flex min-h-12 cursor-pointer list-none items-center gap-3 rounded-md px-4 py-2 text-label-l text-on-surface">
+              <Icon name="warning" className="text-warning" />
+              <span className="flex-1">{incomplete.length} MDI con dati mancanti (verranno esportate comunque)</span>
+              <Icon name="expand_more" className="transition-transform group-open:rotate-180" />
             </summary>
-            <ul className="mt-2 space-y-1.5 text-xs">
+            <ul className="space-y-1.5 px-4 pb-3 text-body-s">
               {incomplete.map(({ m, avvisi }) => (
                 <li key={m.id}>
                   <strong>
@@ -151,15 +154,19 @@ export function ExportInnovaplanModal({ onClose }: { onClose: () => void }) {
         )}
 
         {scaricate && (
-          <div className="space-y-2 rounded-il border border-border p-3">
-            <p className="text-text2">
+          <div className="space-y-3 rounded-md bg-surface-container-lowest p-4">
+            <p>
               File scaricato con <strong>{daSegnare}</strong> MDI. Dopo averlo importato su INNOVAPLAN, segnale come
               esportate:
             </p>
             {segnate ? (
-              <p className="font-bold text-green">✓ {daSegnare} MDI segnate come esportate su INNOVAPLAN</p>
+              <p className="flex items-center gap-2 text-label-l text-success">
+                <Icon name="check_circle" filled size={20} />
+                {daSegnare} MDI segnate come esportate su INNOVAPLAN
+              </p>
             ) : (
-              <Button variant="success" disabled={segna.isPending || !profile} onClick={() => void segnaEsportate()}>
+              <Button variant="success" icon="done_all" disabled={segna.isPending || !profile} onClick={() => void segnaEsportate()}>
+
                 {segna.isPending ? 'Salvataggio…' : `Segna ${daSegnare} MDI come esportate su INNOVAPLAN`}
               </Button>
             )}
@@ -167,6 +174,6 @@ export function ExportInnovaplanModal({ onClose }: { onClose: () => void }) {
           </div>
         )}
       </div>
-    </Modal>
+    </Dialog>
   )
 }

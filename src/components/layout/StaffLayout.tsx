@@ -1,92 +1,163 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '../../features/auth/AuthProvider'
+import { Icon } from '../ui/Icon'
+import { IconButton } from '../ui/Button'
 
 const NAV_ITEMS = [
-  { to: '/staff/dashboard', label: 'Monitoraggio' },
-  { to: '/staff/open-days', label: 'Open Day' },
-  { to: '/staff/mdi', label: 'MDI' },
-  { to: '/staff/impostazioni', label: 'Impostazioni' },
+  { to: '/staff/dashboard', label: 'Monitoraggio', icon: 'monitoring' },
+  { to: '/staff/open-days', label: 'Open Day', icon: 'event' },
+  { to: '/staff/mdi', label: 'MDI', icon: 'assignment' },
+  { to: '/staff/impostazioni', label: 'Impostazioni', icon: 'settings' },
 ]
 
-function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
+/*
+ * Navigazione adattiva M3 per classe di finestra:
+ * - compact (< 600dp): top app bar + navigation bar in basso;
+ * - medium (600–1199dp): navigation rail a sinistra;
+ * - expanded (≥ 1200dp): navigation drawer standard.
+ */
+
+/** Voce di rail/drawer: su medium icona con pillola + etichetta sotto, su expanded pillola larga. */
+function SideNavLinks() {
   return (
-    <nav className="flex flex-col gap-1">
+    <div className="flex flex-col gap-3 expanded:gap-0">
       {NAV_ITEMS.map((item) => (
-        <NavLink
-          key={item.to}
-          to={item.to}
-          onClick={onNavigate}
-          className={({ isActive }) =>
-            `rounded-il px-3 py-2 text-sm font-bold transition-colors ${
-              isActive ? 'bg-orange-light text-orange-dark' : 'text-text2 hover:bg-gray-light'
-            }`
-          }
-        >
-          {item.label}
+        <NavLink key={item.to} to={item.to} className="group flex flex-col items-center gap-1 expanded:block">
+          {({ isActive }) => (
+            <>
+              <span
+                className={`state-layer flex h-8 w-14 items-center justify-center rounded-full expanded:h-14 expanded:w-full expanded:justify-start expanded:gap-3 expanded:px-4 ${
+                  isActive ? 'bg-secondary-container text-on-secondary-container' : 'text-on-surface-variant'
+                }`}
+              >
+                <Icon name={item.icon} filled={isActive} />
+                <span className="hidden text-label-l expanded:inline">{item.label}</span>
+              </span>
+              <span
+                className={`text-label-m expanded:hidden ${isActive ? 'text-on-surface' : 'text-on-surface-variant'}`}
+              >
+                {item.label}
+              </span>
+            </>
+          )}
+        </NavLink>
+      ))}
+    </div>
+  )
+}
+
+function BottomNavBar() {
+  return (
+    <nav
+      aria-label="Navigazione principale"
+      className="fixed inset-x-0 bottom-0 z-30 flex h-20 bg-surface-container pb-[env(safe-area-inset-bottom)] medium:hidden print:hidden"
+    >
+      {NAV_ITEMS.map((item) => (
+        <NavLink key={item.to} to={item.to} className="flex flex-1 flex-col items-center justify-center gap-1">
+          {({ isActive }) => (
+            <>
+              <span
+                className={`state-layer flex h-8 w-16 items-center justify-center rounded-full ${
+                  isActive ? 'bg-secondary-container text-on-secondary-container' : 'text-on-surface-variant'
+                }`}
+              >
+                <Icon name={item.icon} filled={isActive} />
+              </span>
+              <span className={`text-label-m ${isActive ? 'text-on-surface' : 'text-on-surface-variant'}`}>
+                {item.label}
+              </span>
+            </>
+          )}
         </NavLink>
       ))}
     </nav>
   )
 }
 
-export function StaffLayout() {
-  const { profile, signOut } = useAuth()
-  const [menuOpen, setMenuOpen] = useState(false)
+/** Menu account della top app bar (compact): nome utente ed "Esci". */
+function AccountMenu({ nome, onEsci }: { nome?: string; onEsci: () => void }) {
+  const [aperto, setAperto] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!aperto) return
+    const chiudi = (e: MouseEvent | KeyboardEvent) => {
+      if (e instanceof KeyboardEvent ? e.key === 'Escape' : !ref.current?.contains(e.target as Node)) setAperto(false)
+    }
+    document.addEventListener('mousedown', chiudi)
+    document.addEventListener('keydown', chiudi)
+    return () => {
+      document.removeEventListener('mousedown', chiudi)
+      document.removeEventListener('keydown', chiudi)
+    }
+  }, [aperto])
 
   return (
-    <div className="min-h-screen bg-gray-xl md:flex">
-      {/* Sidebar desktop */}
-      <aside className="hidden w-[230px] shrink-0 border-r border-border bg-white p-4 md:block">
-        <div className="mb-6 px-1">
-          <p className="text-sm font-black text-text">Immaginazione e Lavoro</p>
-          <p className="text-xs text-text3">Recruitment IeFP</p>
+    <div ref={ref} className="relative">
+      <IconButton icon="account_circle" label="Account" aria-expanded={aperto} onClick={() => setAperto((a) => !a)} />
+      {aperto && (
+        <div
+          role="menu"
+          className="absolute right-0 top-full z-40 mt-1 min-w-56 rounded-xs bg-surface-container py-2 shadow-elev-2"
+        >
+          {nome && <p className="px-3 py-2 text-body-m text-on-surface-variant">{nome}</p>}
+          <button
+            type="button"
+            role="menuitem"
+            onClick={onEsci}
+            className="state-layer flex h-12 w-full items-center gap-3 px-3 text-label-l text-on-surface"
+          >
+            <Icon name="logout" className="text-on-surface-variant" />
+            Esci
+          </button>
         </div>
-        <NavLinks />
-      </aside>
+      )}
+    </div>
+  )
+}
 
-      <div className="flex-1">
-        {/* Topbar */}
-        <header className="flex h-14 items-center justify-between border-b-4 border-orange bg-white px-4">
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              aria-label="Apri menu"
-              onClick={() => setMenuOpen(true)}
-              className="rounded-il border border-border px-2 py-1 text-lg md:hidden"
-            >
-              &#9776;
-            </button>
-            <p className="text-sm font-bold text-text md:hidden">IL Recruitment</p>
+export function StaffLayout() {
+  const { profile, signOut } = useAuth()
+  const esci = () => void signOut()
+
+  return (
+    <div className="min-h-dvh bg-surface medium:flex">
+      {/* Rail (medium) / drawer (expanded) */}
+      <nav
+        aria-label="Navigazione principale"
+        className="sticky top-0 hidden h-dvh w-20 shrink-0 flex-col items-center bg-surface py-4 medium:flex expanded:w-[280px] expanded:items-stretch expanded:bg-surface-container-low expanded:px-3 print:hidden"
+      >
+        <div className="mb-6 flex flex-col items-center expanded:flex-row expanded:gap-3 expanded:px-4">
+          <img src="/logo-il.jpg" alt="Immaginazione e Lavoro" className="h-12 w-auto mix-blend-multiply" />
+          <div className="hidden expanded:block">
+            <p className="text-title-s text-on-surface">Recruitment IeFP</p>
+            <p className="text-body-s text-on-surface-variant">Open Day e MDI</p>
           </div>
-          <div className="flex items-center gap-3 text-sm">
-            <span className="hidden text-text2 sm:inline">{profile?.nome_completo}</span>
-            <button type="button" onClick={() => void signOut()} className="font-bold text-blue hover:underline">
-              Esci
-            </button>
-          </div>
+        </div>
+        <SideNavLinks />
+        <div className="mt-auto flex flex-col items-center gap-1 expanded:flex-row expanded:gap-3 expanded:px-4">
+          <p className="hidden min-w-0 flex-1 truncate text-body-m text-on-surface-variant expanded:block">
+            {profile?.nome_completo}
+          </p>
+          <IconButton icon="logout" label="Esci" onClick={esci} />
+        </div>
+      </nav>
+
+      <div className="min-w-0 flex-1">
+        {/* Top app bar (compact) */}
+        <header className="sticky top-0 z-20 flex h-16 items-center gap-2 bg-surface px-4 medium:hidden print:hidden">
+          <img src="/logo-il.jpg" alt="" className="h-10 w-auto mix-blend-multiply" />
+          <p className="min-w-0 flex-1 truncate text-title-l text-on-surface">Recruitment</p>
+          <AccountMenu nome={profile?.nome_completo} onEsci={esci} />
         </header>
 
-        {/* Sidebar mobile (overlay) */}
-        {menuOpen && (
-          <div className="fixed inset-0 z-40 flex md:hidden">
-            <div className="w-64 bg-white p-4 shadow-il">
-              <div className="mb-4 flex items-center justify-between">
-                <p className="text-sm font-black text-text">IL Recruitment</p>
-                <button type="button" aria-label="Chiudi menu" onClick={() => setMenuOpen(false)} className="text-xl">
-                  &times;
-                </button>
-              </div>
-              <NavLinks onNavigate={() => setMenuOpen(false)} />
-            </div>
-            <div className="flex-1 bg-black/40" onClick={() => setMenuOpen(false)} />
-          </div>
-        )}
-
-        <main className="p-4 sm:p-6">
+        <main className="mx-auto max-w-[1440px] px-4 pb-28 pt-2 medium:px-6 medium:py-6 medium:pb-8">
           <Outlet />
         </main>
       </div>
+
+      <BottomNavBar />
     </div>
   )
 }

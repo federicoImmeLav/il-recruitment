@@ -1,4 +1,5 @@
 import { Badge } from '../../components/ui/Badge'
+import { SelectField } from '../../components/ui/Field'
 import { useSpostaIndirizzo } from '../../hooks/useBookings'
 import type { IndirizzoOpenDay } from '../../hooks/useOpenDayCorsi'
 import type { Booking, Corso } from '../../types/database.types'
@@ -9,8 +10,8 @@ export function IndirizzoBadge({ booking, corsi }: { booking: Booking; corsi: Co
   const cambiato = booking.corso_iniziale_id !== booking.corso_id
   return (
     <span className="inline-flex flex-wrap items-center gap-1">
-      <Badge color={booking.corso_id ? 'purple' : 'gray'}>{booking.corso_id ? nome(booking.corso_id) : 'Senza indirizzo'}</Badge>
-      {cambiato && <span className="text-xs text-text3">da {nome(booking.corso_iniziale_id)}</span>}
+      <Badge color={booking.corso_id ? 'accent' : 'neutral'}>{booking.corso_id ? nome(booking.corso_id) : 'Senza indirizzo'}</Badge>
+      {cambiato && <span className="text-body-s text-on-surface-variant">da {nome(booking.corso_iniziale_id)}</span>}
     </span>
   )
 }
@@ -36,9 +37,11 @@ export function SpostaIndirizzoSelect({
   const corsoAttuale = attualeFuori ? corsi.find((c) => c.id === booking.corso_id) : undefined
 
   return (
-    <select
+    <SelectField
+      dense
+      label="Indirizzo"
       aria-label={`Indirizzo di ${booking.cognome} ${booking.nome}`}
-      className={`max-w-full rounded-il border border-border bg-white px-2 py-1.5 text-xs font-bold text-text2 focus:border-blue focus:outline-none disabled:opacity-50 ${className}`}
+      className={`min-w-44 max-w-full ${className}`}
       value={booking.corso_id ?? ''}
       disabled={isPending}
       onChange={(e) => void sposta(booking, e.target.value || null)}
@@ -50,6 +53,6 @@ export function SpostaIndirizzoSelect({
         </option>
       ))}
       {attualeFuori && <option value={booking.corso_id!}>{corsoAttuale?.nome ?? 'Indirizzo non più attivo'} (fuori Open Day)</option>}
-    </select>
+    </SelectField>
   )
 }

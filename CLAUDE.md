@@ -73,9 +73,17 @@ account staff, deploy). Struttura cartelle in `src/` spiegata lì.
 - Lingua contenuti/UI: italiano.
 - Mobile-first: l'app deve restare pienamente usabile da smartphone/tablet (form
   pubblici e area staff, inclusi check-in fatti a mano libera durante l'evento).
-- Design system ripreso dal vecchio portale: variabili colore in `src/index.css`
-  (`--orange` primario azioni, `--green` successo, `--blue`, `--red`, `--gray`...), font
-  Lato. Mantenere coerenza visiva per chi già usa i vecchi strumenti.
+- Design system **Material Design 3** (m3.material.io) con brand IL, solo tema chiaro:
+  ruoli colore M3 (`--md-sys-color-*`, custom `success`/`warning`/`accent`) generati dal
+  seed arancio IL `#ec6726` e definiti in `src/index.css`, scala tipografica M3 con Lato
+  (`text-headline-s`, `text-title-m`, `text-body-m`, `text-label-l`…), forme `rounded-xs…xl`,
+  utility `state-layer` e `touch-target` (48dp). Nel codice solo ruoli M3 (`bg-primary`,
+  `text-on-surface-variant`, `bg-surface-container`…): mai hex, colori Tailwind di default
+  o emoji al posto delle icone. Componenti in `src/components/ui/` (Button/IconButton/Fab,
+  Field outlined, Chip, Dialog su `<dialog>`, Snackbar, List, Tabs, SegmentedButton,
+  PageHeader…); navigazione staff adattiva (navigation bar < 600dp, rail, drawer ≥ 1200dp).
+  Icone Material Symbols caricate in `index.html` col sottoinsieme `icon_names`: un'icona
+  nuova va aggiunta lì (il test `icone.test.ts` lo verifica).
 - Ogni nuovo modulo Supabase (tabelle/RLS) segue il pattern di `0002_rls_policies.sql`:
   helper `is_staff()`, `TO authenticated`/`TO anon` espliciti, mai `auth.role()`.
 - Per ogni nuovo strumento, segnalare sempre l'eventuale necessità di export dati verso

@@ -1,8 +1,10 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
 import { Card } from '../../components/ui/Card'
-import { Button } from '../../components/ui/Button'
-import { Badge } from '../../components/ui/Badge'
+import { Button, Fab } from '../../components/ui/Button'
+import { Badge, type BadgeColor } from '../../components/ui/Badge'
+import { ChipSet, FilterChip } from '../../components/ui/Chip'
+import { Icon } from '../../components/ui/Icon'
+import { EmptyState, PageHeader, SectionHeader } from '../../components/ui/PageHeader'
 import { Spinner, ErrorBanner } from '../../components/ui/Spinner'
 import { useEdizioni } from '../../hooks/useEdizioni'
 import { useOpenDays } from '../../hooks/useOpenDays'
@@ -12,10 +14,10 @@ import { EdizioneFormModal } from './EdizioneFormModal'
 import { OpenDayFormModal } from './OpenDayFormModal'
 import type { OpenDay, StatoOpenDay } from '../../types/database.types'
 
-const STATO_COLOR: Record<StatoOpenDay, 'green' | 'gray' | 'red'> = {
-  aperto: 'green',
-  chiuso: 'gray',
-  annullato: 'red',
+const STATO_COLOR: Record<StatoOpenDay, BadgeColor> = {
+  aperto: 'success',
+  chiuso: 'neutral',
+  annullato: 'error',
 }
 
 const STATO_LABEL: Record<StatoOpenDay, string> = {
@@ -39,95 +41,115 @@ export function OpenDaysListPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-lg font-bold text-text">Open Day</h1>
-        <Button onClick={() => setShowEdizioneModal(true)}>+ Nuova edizione</Button>
-      </div>
+      <PageHeader
+        title="Open Day"
+        subtitle="Edizioni ed eventi di orientamento"
+        actions={
+          <Button variant="outlined" icon="add" onClick={() => setShowEdizioneModal(true)}>
+            Nuova edizione
+          </Button>
+        }
+      />
 
       {loadingEdizioni && <Spinner />}
       {edizioniError && <ErrorBanner message="Errore nel caricamento delle edizioni." />}
 
       {edizioni && edizioni.length === 0 && (
         <Card>
-          <p className="text-sm text-text2">
+          <EmptyState icon="calendar_add_on">
             Nessuna edizione ancora creata. Crea la prima edizione per poter aggiungere degli Open Day.
-          </p>
+          </EmptyState>
         </Card>
       )}
 
       {edizioni && edizioni.length > 0 && (
         <>
-          <div className="flex flex-wrap gap-2">
+          <ChipSet label="Edizioni" className="-mt-4">
             {edizioni.map((ed) => (
-              <button
-                key={ed.id}
-                onClick={() => setEdizioneId(ed.id)}
-                className={`rounded-full border px-3 py-1 text-sm font-bold transition-colors ${
-                  activeEdizioneId === ed.id
-                    ? 'border-orange bg-orange-light text-orange-dark'
-                    : 'border-border text-text2 hover:bg-gray-light'
-                }`}
-              >
+              <FilterChip key={ed.id} selected={activeEdizioneId === ed.id} onClick={() => setEdizioneId(ed.id)}>
                 {ed.nome} — {ed.anno}
-              </button>
+              </FilterChip>
             ))}
-          </div>
+          </ChipSet>
 
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-bold uppercase tracking-wide text-text3">Eventi</h2>
-            <Button variant="blue" onClick={() => setOpenDayModal('new')} disabled={!activeEdizioneId}>
-              + Nuovo Open Day
-            </Button>
-          </div>
+          <SectionHeader
+            title="Eventi"
+            actions={
+              // Su compact c'è il FAB al suo posto.
+              <div className="hidden medium:block">
+                <Button icon="add" onClick={() => setOpenDayModal('new')} disabled={!activeEdizioneId}>
+                  Nuovo Open Day
+                </Button>
+              </div>
+            }
+          />
 
           {loadingOpenDays && <Spinner />}
           {openDaysError && <ErrorBanner message="Errore nel caricamento degli Open Day." />}
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {openDays?.map((od) => (
-              <Card key={od.id} className="flex flex-col gap-3">
-                <div className="flex items-start justify-between">
+              <Card key={od.id} className="flex flex-col gap-4">
+                <div className="flex items-start justify-between gap-2">
                   <div>
-                    <p className="font-bold text-text">
+                    <p className="text-title-l text-on-surface">
                       {new Date(od.data).toLocaleDateString('it-IT', { day: '2-digit', month: 'long', year: 'numeric' })}
                     </p>
-                    <p className="text-sm text-text3">{od.ora.slice(0, 5)} — {od.tipo}</p>
+                    <p className="mt-0.5 flex items-center gap-1 text-body-m text-on-surface-variant">
+                      <Icon name="schedule" size={16} />
+                      {od.ora.slice(0, 5)} — {od.tipo}
+                    </p>
                   </div>
                   <Badge color={STATO_COLOR[od.stato]}>{STATO_LABEL[od.stato]}</Badge>
                 </div>
-                <p className="text-sm text-text2">Posti massimi: {od.posti_max}</p>
+                <p className="flex items-center gap-1 text-body-m text-on-surface-variant">
+                  <Icon name="event_seat" size={16} />
+                  Posti massimi: {od.posti_max}
+                </p>
                 <div className="flex flex-wrap gap-1">
                   {indirizziDi(od.id).length > 0 ? (
                     indirizziDi(od.id).map((nome) => (
-                      <Badge key={nome} color="purple">
+                      <Badge key={nome} color="accent">
                         {nome}
                       </Badge>
                     ))
                   ) : (
-                    <span className="text-xs text-text3">Tutti gli indirizzi</span>
+                    <span className="text-body-s text-on-surface-variant">Tutti gli indirizzi</span>
                   )}
                 </div>
-                <div className="mt-auto flex flex-wrap gap-2">
-                  <Button variant="ghost" onClick={() => setOpenDayModal(od)}>
+                <div className="-mx-2 mt-auto flex flex-wrap items-center gap-1 border-t border-outline-variant pt-3">
+                  <Button variant="tonal" icon="fact_check" to={`/staff/open-days/${od.id}/iscrizioni`} className="mr-auto ml-2">
+                    Iscrizioni
+                  </Button>
+                  <Button variant="text" to={`/staff/open-days/${od.id}/gruppi`}>
+                    Gruppi
+                  </Button>
+                  <Button variant="text" onClick={() => setOpenDayModal(od)}>
                     Modifica
                   </Button>
-                  <Link to={`/staff/open-days/${od.id}/iscrizioni`}>
-                    <Button variant="blue">Iscrizioni</Button>
-                  </Link>
-                  <Link to={`/staff/open-days/${od.id}/gruppi`}>
-                    <Button variant="ghost">Gruppi</Button>
-                  </Link>
                   {/* Kiosk pubblico: aperto in una nuova scheda, da usare sul tablet dell'evento. */}
-                  <a href={`/mdi/kiosk/${od.id}`} target="_blank" rel="noreferrer">
-                    <Button variant="ghost">Kiosk MDI ↗</Button>
-                  </a>
+                  <Button variant="text" href={`/mdi/kiosk/${od.id}`} target="_blank" rel="noreferrer" trailingIcon="open_in_new">
+                    Kiosk MDI
+                  </Button>
                 </div>
               </Card>
             ))}
-            {openDays && openDays.length === 0 && (
-              <p className="text-sm text-text3">Nessun Open Day per questa edizione.</p>
-            )}
           </div>
+          {openDays && openDays.length === 0 && (
+            <Card>
+              <EmptyState icon="event_busy">Nessun Open Day per questa edizione.</EmptyState>
+            </Card>
+          )}
+
+          {/* FAB esteso su compact: l'azione principale della schermata resta a portata di pollice. */}
+          <Fab
+            icon="add"
+            className="fixed bottom-24 right-4 z-20 medium:hidden"
+            onClick={() => setOpenDayModal('new')}
+            disabled={!activeEdizioneId}
+          >
+            Nuovo Open Day
+          </Fab>
         </>
       )}
 

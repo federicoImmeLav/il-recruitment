@@ -1,3 +1,5 @@
+import type { BadgeColor } from '../components/ui/Badge'
+
 export const RUOLI_OPERATORE = [
   'farmer_iefp',
   'coordinamento_recruitment',
@@ -27,13 +29,13 @@ export const STATO_BOOKING_LABEL = {
   rejected: 'Rifiutata',
 } as const
 
-export const STATO_BOOKING_COLOR: Record<keyof typeof STATO_BOOKING_LABEL, 'green' | 'orange' | 'blue' | 'gray' | 'red'> = {
-  confirmed: 'green',
-  pending: 'orange',
-  waitlist: 'blue',
-  walk_in: 'gray',
-  cancelled: 'red',
-  rejected: 'red',
+export const STATO_BOOKING_COLOR: Record<keyof typeof STATO_BOOKING_LABEL, BadgeColor> = {
+  confirmed: 'success',
+  pending: 'warning',
+  waitlist: 'tertiary',
+  walk_in: 'neutral',
+  cancelled: 'error',
+  rejected: 'error',
 }
 
 export const CANALE_ISCRIZIONE_LABEL = {
