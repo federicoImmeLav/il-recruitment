@@ -6,6 +6,7 @@ const NAV_ITEMS = [
   { to: '/staff/dashboard', label: 'Monitoraggio' },
   { to: '/staff/open-days', label: 'Open Day' },
   { to: '/staff/mdi', label: 'MDI' },
+  { to: '/staff/impostazioni', label: 'Impostazioni' },
 ]
 
 function NavLinks({ onNavigate }: { onNavigate?: () => void }) {

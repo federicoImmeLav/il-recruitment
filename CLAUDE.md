@@ -24,7 +24,8 @@ SMS — NON vanno aggiunte se non esplicitamente richiesto):
   nessun `tailwind.config.js` — i token vivono come CSS custom properties in
   `src/index.css` e sono mappati in `@theme`).
 - Supabase (Postgres + Auth + Realtime), piano Free. Schema in `supabase/migrations/`
-  (0001 schema, 0002 RLS/RPC, 0003 seed corsi, 0004 kiosk MDI: consensi privacy + RPC ricerca iscritti) — **fonte di verità**, da incollare in
+  (0001 schema, 0002 RLS/RPC, 0003 seed corsi, 0004 kiosk MDI, 0005–0007 import Google
+  Moduli + approvazione + coda notifiche + pg_cron) — **fonte di verità**, da incollare in
   ordine nello SQL Editor del progetto Supabase.
 - React Router v6, TanStack Query, React Hook Form (niente Zod: validazione via regole
   `register()` di RHF, tenuta volutamente semplice).
@@ -43,6 +44,11 @@ Regole da rispettare in ogni modifica futura allo schema:
   lato DB — non fidarsi mai della sola UI per nascondere dati/azioni di gestione.
 - Account staff creati solo dall'admin via Supabase Dashboard (Authentication → Invite),
   niente self-signup pubblico.
+- Edge Functions Deno in `supabase/functions/` (`google-forms-webhook`, `send-notifications`):
+  unico posto dove si usa la service role (dai secret Supabase). Apps Script del Google
+  Modulo in `integrations/google-forms/`. Notifiche: canali intercambiabili in
+  `supabase/functions/_shared/canali.ts` (email Brevo attiva; SMS/WhatsApp automatici
+  predisposti, a pagamento, da attivare solo su richiesta dell'utente).
 
 ## Struttura
 

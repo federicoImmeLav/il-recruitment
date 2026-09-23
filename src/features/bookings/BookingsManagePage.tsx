@@ -6,10 +6,13 @@ import { Badge } from '../../components/ui/Badge'
 import { InputField } from '../../components/ui/Field'
 import { Spinner, ErrorBanner } from '../../components/ui/Spinner'
 import { useOpenDay } from '../../hooks/useOpenDays'
-import { useBookings, useCheckIn, useCreateBooking, useUpdateBooking } from '../../hooks/useBookings'
+import { useBookings, useCheckIn, useCreateBooking, useDecidiIscrizione, useUpdateBooking } from '../../hooks/useBookings'
 import { useRealtimeOpenDay } from '../../hooks/useRealtimeInvalidate'
+import { useNotifiche } from '../../hooks/useNotifiche'
+import { RichiesteDaApprovare } from './RichiesteDaApprovare'
+import { NotificheIscrizione } from './NotificheIscrizione'
 import { STATO_BOOKING_COLOR, STATO_BOOKING_LABEL } from '../../lib/constants'
-import type { Booking, StatoBooking } from '../../types/database.types'
+import type { Booking, Notifica, StatoBooking } from '../../types/database.types'
 
 function WalkInForm({ openDayId }: { openDayId: string }) {
   const createBooking = useCreateBooking()
@@ -40,9 +43,10 @@ function WalkInForm({ openDayId }: { openDayId: string }) {
   )
 }
 
-function BookingRow({ booking }: { booking: Booking }) {
+function BookingRow({ booking, notifiche }: { booking: Booking; notifiche: Notifica[] }) {
   const { checkIn, isPending: checkinPending } = useCheckIn()
   const updateBooking = useUpdateBooking()
+  const decidi = useDecidiIscrizione()
 
   return (
     <div className="flex flex-col gap-2 border-b border-border py-3 last:border-0 sm:flex-row sm:items-center sm:justify-between">
@@ -54,6 +58,7 @@ function BookingRow({ booking }: { booking: Booking }) {
           {booking.telefono}
           {booking.scuola ? ` · ${booking.scuola}` : ''}
         </p>
+        <NotificheIscrizione booking={booking} notifiche={notifiche} />
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <Badge color={STATO_BOOKING_COLOR[booking.status]}>{STATO_BOOKING_LABEL[booking.status]}</Badge>
@@ -66,6 +71,16 @@ function BookingRow({ booking }: { booking: Booking }) {
             }
           >
             Conferma
+          </Button>
+        )}
+        {booking.status === 'rejected' && (
+          <Button
+            variant="ghost"
+            className="text-xs"
+            disabled={decidi.isPending}
+            onClick={() => void decidi.mutateAsync({ booking, approva: true })}
+          >
+            Approva comunque
           </Button>
         )}
         <label className="flex items-center gap-1 text-xs font-bold text-text2">
@@ -87,10 +102,12 @@ export function BookingsManagePage() {
   const { openDayId } = useParams<{ openDayId: string }>()
   const { data: openDay } = useOpenDay(openDayId)
   const { data: bookings, isLoading, error } = useBookings(openDayId)
+  const { data: notifiche } = useNotifiche(openDayId)
   useRealtimeOpenDay(openDayId)
 
   const checkedIn = bookings?.filter((b) => b.checked_in).length ?? 0
-  const totale = bookings?.filter((b) => b.status !== 'cancelled').length ?? 0
+  const totale = bookings?.filter((b) => ['confirmed', 'walk_in', 'waitlist'].includes(b.status)).length ?? 0
+  const elenco = bookings?.filter((b) => b.status !== 'pending')
 
   return (
     <div className="space-y-6">
@@ -109,14 +126,16 @@ export function BookingsManagePage() {
         </Link>
       </div>
 
+      {bookings && <RichiesteDaApprovare bookings={bookings} />}
+
       {openDayId && <WalkInForm openDayId={openDayId} />}
 
       <Card>
         {isLoading && <Spinner />}
         {error && <ErrorBanner message="Errore nel caricamento delle iscrizioni." />}
-        {bookings?.length === 0 && <p className="text-sm text-text3">Nessuna iscrizione ancora.</p>}
-        {bookings?.map((b) => (
-          <BookingRow key={b.id} booking={b} />
+        {elenco?.length === 0 && <p className="text-sm text-text3">Nessuna iscrizione ancora.</p>}
+        {elenco?.map((b) => (
+          <BookingRow key={b.id} booking={b} notifiche={notifiche?.filter((n) => n.booking_id === b.id) ?? []} />
         ))}
       </Card>
     </div>

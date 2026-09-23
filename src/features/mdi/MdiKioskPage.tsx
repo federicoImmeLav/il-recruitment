@@ -86,6 +86,8 @@ function campiDaIscritto(d: KioskDatiIscritto): Partial<MdiFormValues> {
     all_nome: d.nome,
     all_data_nascita: d.data_nascita ?? '',
     all_scuola_provenienza: d.scuola ?? '',
+    acc_cognome: d.acc_cognome ?? '',
+    acc_nome: d.acc_nome ?? '',
     acc_cellulare: d.telefono,
     acc_email: d.email ?? '',
     corso_pref1_id: d.corso_id ?? '',

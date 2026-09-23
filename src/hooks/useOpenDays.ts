@@ -78,7 +78,7 @@ export function useCreateOpenDay() {
   return useMutation({
     mutationFn: async (
       input: Pick<OpenDay, 'edizione_id' | 'data' | 'ora' | 'posti_max' | 'tipo' | 'stato'> &
-        Partial<Pick<OpenDay, 'operatore_id' | 'note'>>,
+        Partial<Pick<OpenDay, 'operatore_id' | 'note' | 'etichetta_modulo' | 'luogo_override'>>,
     ) => {
       const { data, error } = await supabase.from('open_days').insert(input).select().single()
       if (error) throw error

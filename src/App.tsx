@@ -9,6 +9,7 @@ import { OpenDaysListPage } from './features/open-days/OpenDaysListPage'
 import { BookingsManagePage } from './features/bookings/BookingsManagePage'
 import { MonitoringDashboardPage } from './features/monitoring/MonitoringDashboardPage'
 import { MdiListPage } from './features/mdi/MdiListPage'
+import { ImpostazioniPage } from './features/impostazioni/ImpostazioniPage'
 
 export default function App() {
   return (
@@ -36,6 +37,7 @@ export default function App() {
         <Route path="open-days" element={<OpenDaysListPage />} />
         <Route path="open-days/:openDayId/iscrizioni" element={<BookingsManagePage />} />
         <Route path="mdi" element={<MdiListPage />} />
+        <Route path="impostazioni" element={<ImpostazioniPage />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

@@ -20,10 +20,11 @@ export const RUOLO_LABEL: Record<(typeof RUOLI_OPERATORE)[number], string> = {
 
 export const STATO_BOOKING_LABEL = {
   confirmed: 'Confermata',
-  pending: 'In attesa',
+  pending: 'Da approvare',
   waitlist: 'Lista d’attesa',
   walk_in: 'Walk-in',
   cancelled: 'Annullata',
+  rejected: 'Rifiutata',
 } as const
 
 export const STATO_BOOKING_COLOR: Record<keyof typeof STATO_BOOKING_LABEL, 'green' | 'orange' | 'blue' | 'gray' | 'red'> = {
@@ -32,6 +33,7 @@ export const STATO_BOOKING_COLOR: Record<keyof typeof STATO_BOOKING_LABEL, 'gree
   waitlist: 'blue',
   walk_in: 'gray',
   cancelled: 'red',
+  rejected: 'red',
 }
 
 export const CANALE_ISCRIZIONE_LABEL = {
@@ -40,6 +42,19 @@ export const CANALE_ISCRIZIONE_LABEL = {
   walk_in: 'Walk-in',
   telefono: 'Telefono',
   altro: 'Altro',
+} as const
+
+export const CANALE_NOTIFICA_LABEL = {
+  email: 'Email (automatica, gratuita)',
+  whatsapp_manuale: 'WhatsApp manuale (gratuito, invio con un clic)',
+  sms: 'SMS automatico (a pagamento, da attivare)',
+  whatsapp: 'WhatsApp automatico (a pagamento, da attivare)',
+} as const
+
+export const TIPO_NOTIFICA_LABEL = {
+  approvazione: 'Conferma',
+  rifiuto: 'Rifiuto',
+  reminder: 'Promemoria',
 } as const
 
 export const SOSTEGNO_STATO_LABEL = {

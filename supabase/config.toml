@@ -1,0 +1,13 @@
+# Configurazione minima per il deploy delle Edge Functions con la Supabase CLI
+# (`npx supabase functions deploy <nome> --project-ref <ref>`).
+
+project_id = "il-recruitment"
+
+# Chiamata dall'Apps Script del Google Modulo, che non ha un JWT Supabase:
+# protetta dal secret GOOGLE_FORMS_SECRET (header x-webhook-secret).
+[functions.google-forms-webhook]
+verify_jwt = false
+
+# Chiamata da pg_cron (header x-cron-secret) o dallo staff (JWT verificato nel codice).
+[functions.send-notifications]
+verify_jwt = false

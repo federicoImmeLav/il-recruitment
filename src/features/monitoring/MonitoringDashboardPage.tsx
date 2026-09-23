@@ -9,6 +9,9 @@ import { useOpenDays } from '../../hooks/useOpenDays'
 import { useBookings } from '../../hooks/useBookings'
 import { useMdiList } from '../../hooks/useMdi'
 import { useRealtimeOpenDay } from '../../hooks/useRealtimeInvalidate'
+import { useNotifiche } from '../../hooks/useNotifiche'
+import { RichiesteDaApprovare } from '../bookings/RichiesteDaApprovare'
+import { ElencoIscritti } from '../bookings/ElencoIscritti'
 
 function KpiCard({ label, value, colorClass }: { label: string; value: number | string; colorClass: string }) {
   return (
@@ -28,10 +31,12 @@ export function MonitoringDashboardPage() {
 
   const { data: bookings } = useBookings(effectiveSelectedId)
   const { data: mdiList } = useMdiList({ openDayId: effectiveSelectedId })
+  const { data: notifiche } = useNotifiche(effectiveSelectedId)
   useRealtimeOpenDay(effectiveSelectedId)
 
   const confermati = bookings?.filter((b) => b.status === 'confirmed' || b.status === 'walk_in').length ?? 0
   const waitlist = bookings?.filter((b) => b.status === 'waitlist').length ?? 0
+  const daApprovare = bookings?.filter((b) => b.status === 'pending').length ?? 0
   const checkedIn = bookings?.filter((b) => b.checked_in).length ?? 0
   const selectedOpenDay = openDays?.find((od) => od.id === effectiveSelectedId)
 
@@ -71,12 +76,15 @@ export function MonitoringDashboardPage() {
 
           {selectedOpenDay && (
             <>
-              <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+              <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
+                <KpiCard label="Da approvare" value={daApprovare} colorClass="border-red" />
                 <KpiCard label="Confermati" value={confermati} colorClass="border-green" />
                 <KpiCard label="Lista d'attesa" value={waitlist} colorClass="border-blue" />
                 <KpiCard label="Check-in" value={checkedIn} colorClass="border-orange" />
                 <KpiCard label="MDI raccolte" value={mdiList?.length ?? 0} colorClass="border-purple" />
               </div>
+
+              {bookings && <RichiesteDaApprovare bookings={bookings} />}
 
               <Card>
                 <CapacityGauge value={confermati} max={selectedOpenDay.posti_max} label="Capienza Open Day" />
@@ -90,6 +98,8 @@ export function MonitoringDashboardPage() {
                   {waitlist > 0 ? `${waitlist} in lista d'attesa` : 'Nessuna lista d’attesa'}
                 </Badge>
               </div>
+
+              {bookings && <ElencoIscritti bookings={bookings} notifiche={notifiche ?? []} />}
             </>
           )}
         </>

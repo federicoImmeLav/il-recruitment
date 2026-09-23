@@ -3,7 +3,18 @@
 // esempio fittizi, sessione staff finta, nessuna rete. Si perde tutto al reload.
 // Implementa solo il sottoinsieme di query builder usato dagli hook in src/hooks.
 
-import type { Booking, Corso, Edizione, Mdi, OpenDay, Profile } from '../../types/database.types'
+import type {
+  Booking,
+  Corso,
+  Edizione,
+  GoogleFormImportLog,
+  Impostazioni,
+  Mdi,
+  Notifica,
+  OpenDay,
+  Profile,
+} from '../../types/database.types'
+import { componiMessaggio } from '../messaggi'
 
 type Row = Record<string, unknown>
 
@@ -69,9 +80,27 @@ function openDay(offset: number, ora: string, posti: number, tipo: OpenDay['tipo
     note: null,
     tipo,
     stato: 'aperto',
+    etichetta_modulo: etichettaModulo(isoDate(offset), ora),
+    luogo_override: null,
     created_at: now(),
     updated_at: now(),
   }
+}
+
+function etichettaModulo(data: string, ora: string) {
+  const d = new Date(`${data}T12:00:00`)
+  const giorno = d.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+  return `${giorno.charAt(0).toUpperCase()}${giorno.slice(1)} — ore ${ora}`
+}
+
+/** Campi aggiunti in 0006 (Google Moduli / approvazione), vuoti per le iscrizioni non da modulo. */
+const campiDecisione = {
+  google_response_id: null,
+  acc_cognome: null,
+  acc_nome: null,
+  decisione_at: null,
+  decisione_by: null,
+  motivo_rifiuto: null,
 }
 const open_days: OpenDay[] = [openDay(0, '15:00', 20), openDay(7, '10:00', 30), openDay(14, '15:30', 15, 'OpenDay2e')]
 
@@ -94,7 +123,7 @@ const bookings: Booking[] = nomi.map(([cognome, nome], i) => {
     classe: '3A',
     residenza: 'Milano',
     telefono: `333000${String(i).padStart(4, '0')}`,
-    email: null,
+    email: i % 2 === 0 ? `famiglia.${cognome.toLowerCase()}@example.com` : null,
     corso_id: corsi[i % corsi.length].id,
     corso2_id: corsi[(i + 3) % corsi.length].id,
     canale: i % 4 === 0 ? 'scuola' : 'online',
@@ -104,10 +133,90 @@ const bookings: Booking[] = nomi.map(([cognome, nome], i) => {
     checked_in_at: checked ? now() : null,
     registered_at: now(),
     note_staff: null,
+    ...campiDecisione,
     created_at: now(),
     updated_at: now(),
   }
 })
+
+// Richieste arrivate dal Google Modulo, ancora da approvare.
+const richiesteGoogle: [string, string, string, string | null, number][] = [
+  ['Moretti', 'Giorgia', 'Moretti Paola', 'paola.moretti@example.com', 0],
+  ['Barbieri', 'Samuele', 'Barbieri Marco', null, 0],
+  ['Fontana', 'Nicole', 'Fontana Anna', 'anna.fontana@example.com', 1],
+  ['Santoro', 'Davide', 'Santoro Luigi', 'l.santoro@example.com', 1],
+]
+richiesteGoogle.forEach(([cognome, nome, genitore, email, odIndex], i) => {
+  const [accCognome, accNome] = genitore.split(' ')
+  bookings.push({
+    id: uuid(),
+    open_day_id: open_days[odIndex].id,
+    edizione_id: edizioneId,
+    cognome,
+    nome,
+    data_nascita: '2012-05-1' + i,
+    scuola: 'SMS Calvino',
+    classe: '3B',
+    residenza: 'Milano',
+    telefono: `3471112${String(i).padStart(3, '0')}`,
+    email,
+    corso_id: corsi[(i * 2) % corsi.length].id,
+    corso2_id: null,
+    canale: 'online',
+    status: 'pending',
+    flag_seconda_media: false,
+    checked_in: false,
+    checked_in_at: null,
+    registered_at: now(),
+    note_staff: `Modulo Google inviato il ${new Date().toLocaleDateString('it-IT')}`,
+    ...campiDecisione,
+    google_response_id: `demo-response-${i}`,
+    acc_cognome: accCognome,
+    acc_nome: accNome,
+    created_at: now(),
+    updated_at: now(),
+  })
+})
+
+const impostazioni: Impostazioni = {
+  id: 1,
+  luogo_predefinito: 'Immaginazione e Lavoro — Via Esempio 1, 20100 Milano',
+  indicazioni_predefinite: "Presentatevi 10 minuti prima all'ingresso principale e chiedete dell'accoglienza Open Day.",
+  contatti: 'tel. 02 0000000 — orientamento@example.it',
+  canale_predefinito: 'email',
+  testo_approvazione:
+    "Gentile famiglia, l'iscrizione di {nome} {cognome} all'Open Day di Immaginazione e Lavoro di {data} alle ore {ora} è CONFERMATA. Vi aspettiamo presso {luogo}. {indicazioni} Per informazioni: {contatti}",
+  testo_rifiuto:
+    "Gentile famiglia, purtroppo non possiamo confermare l'iscrizione di {nome} {cognome} all'Open Day di {data} alle ore {ora}. {motivo} Per informazioni o per scegliere un'altra data: {contatti}",
+  testo_reminder:
+    "Promemoria: {nome} {cognome} è atteso/a all'Open Day di Immaginazione e Lavoro {data} alle ore {ora} presso {luogo}. {indicazioni} Per informazioni: {contatti}",
+  updated_at: now(),
+}
+
+const notifiche: Notifica[] = []
+
+const google_form_import_log: GoogleFormImportLog[] = [
+  ...bookings
+    .filter((b) => b.google_response_id)
+    .map((b) => ({
+      id: uuid(),
+      response_id: b.google_response_id,
+      ricevuto_at: now(),
+      esito: 'importata' as const,
+      messaggio: null,
+      booking_id: b.id,
+      payload: { cognome: b.cognome, nome: b.nome, openDay: open_days.find((o) => o.id === b.open_day_id)?.etichetta_modulo },
+    })),
+  {
+    id: uuid(),
+    response_id: 'demo-response-x',
+    ricevuto_at: now(),
+    esito: 'open_day_non_trovato',
+    messaggio: 'Nessun Open Day con etichetta "Domenica 1 marzo — ore 11:00"',
+    booking_id: null,
+    payload: { cognome: 'Galli', nome: 'Pietro', openDay: 'Domenica 1 marzo — ore 11:00' },
+  },
+]
 
 const mdi: Mdi[] = bookings.slice(0, 3).map((b, i) => ({
   id: uuid(),
@@ -170,6 +279,9 @@ const db: Record<string, Row[]> = {
   open_days: open_days as unknown as Row[],
   bookings: bookings as unknown as Row[],
   mdi: mdi as unknown as Row[],
+  impostazioni: [impostazioni] as unknown as Row[],
+  notifiche: notifiche as unknown as Row[],
+  google_form_import_log: google_form_import_log as unknown as Row[],
 }
 
 // --- Query builder ------------------------------------------------------------
@@ -185,6 +297,7 @@ class MockQuery implements PromiseLike<Result> {
   private filters: ((r: Row) => boolean)[] = []
   private sort: { col: string; asc: boolean } | null = null
   private mode: 'many' | 'single' | 'maybeSingle' = 'many'
+  private max: number | null = null
   private op: { kind: 'select' } | { kind: 'insert'; rows: Row[] } | { kind: 'update'; patch: Row } = {
     kind: 'select',
   }
@@ -222,6 +335,10 @@ class MockQuery implements PromiseLike<Result> {
     this.sort = { col, asc: opts?.ascending ?? true }
     return this
   }
+  limit(n: number) {
+    this.max = n
+    return this
+  }
   single() {
     this.mode = 'single'
     return this
@@ -250,6 +367,7 @@ class MockQuery implements PromiseLike<Result> {
       rows = [...rows].sort((a, b) => (String(a[col]) < String(b[col]) ? -1 : String(a[col]) > String(b[col]) ? 1 : 0) * (asc ? 1 : -1))
     }
 
+    if (this.max !== null) rows = rows.slice(0, this.max)
     const copy = rows.map((r) => ({ ...r }))
     if (this.mode === 'many') return { data: copy, error: null }
     if (copy.length === 0 && this.mode === 'maybeSingle') return { data: null, error: null }
@@ -277,6 +395,50 @@ function defaultsFor(table: string): Row {
 
 function confermate(openDayId: string) {
   return db.bookings.filter((b) => b.open_day_id === openDayId && (b.status === 'confirmed' || b.status === 'walk_in')).length
+}
+
+// Replica di public.accoda_notifica() (0006_google_forms_notifiche.sql).
+function accodaNotifica(b: Booking, tipo: Notifica['tipo'], motivo: string | null = null) {
+  const od = (db.open_days as unknown as OpenDay[]).find((o) => o.id === b.open_day_id)!
+  const imp = db.impostazioni[0] as unknown as Impostazioni
+  let canale = imp.canale_predefinito
+  if (canale === 'email' && !b.email?.trim()) canale = 'whatsapp_manuale'
+  const testo = { approvazione: imp.testo_approvazione, rifiuto: imp.testo_rifiuto, reminder: imp.testo_reminder }[tipo]
+  const oggetto = { approvazione: 'Iscrizione Open Day confermata', rifiuto: 'Iscrizione Open Day non confermata', reminder: 'Promemoria Open Day' }[tipo]
+  db.notifiche.push({
+    id: uuid(),
+    booking_id: b.id,
+    open_day_id: b.open_day_id,
+    tipo,
+    canale,
+    destinatario: canale === 'email' ? b.email!.trim() : b.telefono,
+    oggetto: `${oggetto} — Immaginazione e Lavoro`,
+    testo: componiMessaggio(testo, b, od, imp, motivo),
+    stato: canale === 'whatsapp_manuale' ? 'manuale' : 'in_coda',
+    errore: null,
+    tentativi: 0,
+    in_invio_at: null,
+    created_at: now(),
+    sent_at: null,
+  } satisfies Notifica as unknown as Row)
+}
+
+/** Simula l'Edge Function send-notifications: le email "partono", SMS/WhatsApp automatici non sono attivi. */
+async function invokeFunction(name: string): Promise<Result> {
+  await new Promise((r) => setTimeout(r, 600))
+  if (name !== 'send-notifications') return { data: null, error: { message: `Funzione ${name} non simulata` } }
+  let inviate = 0
+  for (const n of db.notifiche as unknown as Notifica[]) {
+    if (n.stato !== 'in_coda') continue
+    n.tentativi++
+    if (n.canale === 'email') {
+      Object.assign(n, { stato: 'inviata', sent_at: now(), errore: null })
+      inviate++
+    } else {
+      Object.assign(n, { stato: 'errore', errore: `Canale ${n.canale.toUpperCase()} non attivo (demo)` })
+    }
+  }
+  return { data: { inviate }, error: null }
 }
 
 function presentiOggi(openDayId: string) {
@@ -316,6 +478,7 @@ async function rpc(fn: string, args: Row): Promise<Result> {
       checked_in_at: null,
       registered_at: now(),
       note_staff: null,
+      ...campiDecisione,
       created_at: now(),
       updated_at: now(),
     }
@@ -335,8 +498,26 @@ async function rpc(fn: string, args: Row): Promise<Result> {
     const b = (db.bookings as unknown as Booking[]).find((x) => x.id === args.p_booking_id)
     const odB = b && (db.open_days as unknown as OpenDay[]).find((o) => o.id === b.open_day_id)
     if (!b || !odB || odB.data !== isoDate(0) || !b.checked_in || b.status === 'cancelled') return { data: [], error: null }
-    const { id, open_day_id, cognome, nome, data_nascita, scuola, telefono, email, corso_id, corso2_id } = b
-    return { data: [{ id, open_day_id, cognome, nome, data_nascita, scuola, telefono, email, corso_id, corso2_id }], error: null }
+    const { id, open_day_id, cognome, nome, data_nascita, scuola, telefono, email, corso_id, corso2_id, acc_cognome, acc_nome } = b
+    return {
+      data: [{ id, open_day_id, cognome, nome, data_nascita, scuola, telefono, email, corso_id, corso2_id, acc_cognome, acc_nome }],
+      error: null,
+    }
+  }
+  if (fn === 'decidi_iscrizione') {
+    const b = (db.bookings as unknown as Booking[]).find((x) => x.id === args.p_booking_id)
+    if (!b) return { data: null, error: { message: 'Iscrizione non trovata o non modificabile' } }
+    const approva = args.p_approva === true
+    const motivo = (args.p_motivo as string | null) ?? null
+    Object.assign(b, {
+      status: approva ? 'confirmed' : 'rejected',
+      decisione_at: now(),
+      decisione_by: DEMO_USER_ID,
+      motivo_rifiuto: approva ? null : motivo,
+      updated_at: now(),
+    })
+    accodaNotifica(b, approva ? 'approvazione' : 'rifiuto', motivo)
+    return { data: { ...b }, error: null }
   }
   if (fn === 'is_staff') return { data: true, error: null }
   return { data: null, error: { message: `RPC ${fn} non simulata in demo` } }
@@ -372,4 +553,5 @@ export const mockSupabase = {
   },
   channel: () => fakeChannel,
   removeChannel: async () => 'ok',
+  functions: { invoke: invokeFunction },
 }

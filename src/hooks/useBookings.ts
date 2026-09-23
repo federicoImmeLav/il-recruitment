@@ -92,3 +92,38 @@ export function useCheckIn() {
       }),
   }
 }
+
+/**
+ * Approva (sempre "confermata", anche oltre i posti massimi) o rifiuta una
+ * richiesta: la RPC accoda anche la notifica alla famiglia. Subito dopo prova a
+ * inviare la coda, senza attendere il giro del cron (ogni 5 minuti).
+ */
+export function useDecidiIscrizione() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ booking, approva, motivo }: { booking: Booking; approva: boolean; motivo?: string }) => {
+      const { data, error } = await supabase.rpc('decidi_iscrizione', {
+        p_booking_id: booking.id,
+        p_approva: approva,
+        p_motivo: motivo?.trim() || null,
+      })
+      if (error) throw error
+      return data as unknown as Booking
+    },
+    onSuccess: async (booking) => {
+      queryClient.invalidateQueries({ queryKey: ['bookings', booking.open_day_id] })
+      queryClient.invalidateQueries({ queryKey: ['notifiche', booking.open_day_id] })
+      await inviaCodaNotifiche()
+      queryClient.invalidateQueries({ queryKey: ['notifiche', booking.open_day_id] })
+    },
+  })
+}
+
+/** Avvia l'invio delle notifiche in coda (Edge Function send-notifications). Errori non bloccanti: ci ripensa il cron. */
+export async function inviaCodaNotifiche() {
+  try {
+    await supabase.functions.invoke('send-notifications', { body: {} })
+  } catch {
+    // La notifica resta in coda e verra' inviata al prossimo giro del cron.
+  }
+}

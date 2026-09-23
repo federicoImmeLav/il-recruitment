@@ -5,7 +5,7 @@
 export type StatoEdizione = 'bozza' | 'attiva' | 'chiusa'
 export type StatoOpenDay = 'aperto' | 'chiuso' | 'annullato'
 export type TipoOpenDay = 'OpenDay' | 'OpenDay2e'
-export type StatoBooking = 'confirmed' | 'pending' | 'waitlist' | 'walk_in' | 'cancelled'
+export type StatoBooking = 'confirmed' | 'pending' | 'waitlist' | 'walk_in' | 'cancelled' | 'rejected'
 export type CanaleIscrizione = 'online' | 'scuola' | 'walk_in' | 'telefono' | 'altro'
 export type QualitaAccompagnatore = 'genitore' | 'tutore'
 export type SostegnoStato = 'mai' | 'passato' | 'presente'
@@ -48,6 +48,10 @@ export type OpenDay = {
   note: string | null
   tipo: TipoOpenDay
   stato: StatoOpenDay
+  /** Testo dell'opzione del menu nel Google Modulo collegata a questo Open Day. */
+  etichetta_modulo: string | null
+  /** Luogo/indicazioni specifici; se vuoto valgono quelli di `impostazioni`. */
+  luogo_override: string | null
   created_at: string
   updated_at: string
 }
@@ -58,7 +62,18 @@ export type KioskIscritto = { id: string; cognome: string; nome: string; scuola:
 /** Risultato di kiosk_dati_iscritto: campi per precompilare la MDI. */
 export type KioskDatiIscritto = Pick<
   Booking,
-  'id' | 'open_day_id' | 'cognome' | 'nome' | 'data_nascita' | 'scuola' | 'telefono' | 'email' | 'corso_id' | 'corso2_id'
+  | 'id'
+  | 'open_day_id'
+  | 'cognome'
+  | 'nome'
+  | 'data_nascita'
+  | 'scuola'
+  | 'telefono'
+  | 'email'
+  | 'corso_id'
+  | 'corso2_id'
+  | 'acc_cognome'
+  | 'acc_nome'
 >
 
 /** Colonne effettivamente leggibili da anon (vedi GRANT in 0002_rls_policies.sql). */
@@ -96,8 +111,59 @@ export type Booking = {
   checked_in_at: string | null
   registered_at: string
   note_staff: string | null
+  google_response_id: string | null
+  acc_cognome: string | null
+  acc_nome: string | null
+  decisione_at: string | null
+  decisione_by: string | null
+  motivo_rifiuto: string | null
   created_at: string
   updated_at: string
+}
+
+export type CanaleNotifica = 'email' | 'whatsapp_manuale' | 'sms' | 'whatsapp'
+export type TipoNotifica = 'approvazione' | 'rifiuto' | 'reminder'
+export type StatoNotifica = 'in_coda' | 'inviata' | 'errore' | 'manuale'
+
+export type Notifica = {
+  id: string
+  booking_id: string
+  open_day_id: string
+  tipo: TipoNotifica
+  canale: CanaleNotifica
+  destinatario: string
+  oggetto: string
+  testo: string
+  stato: StatoNotifica
+  errore: string | null
+  tentativi: number
+  in_invio_at: string | null
+  created_at: string
+  sent_at: string | null
+}
+
+export type Impostazioni = {
+  id: 1
+  luogo_predefinito: string
+  indicazioni_predefinite: string
+  contatti: string
+  canale_predefinito: CanaleNotifica
+  testo_approvazione: string
+  testo_rifiuto: string
+  testo_reminder: string
+  updated_at: string
+}
+
+export type EsitoImport = 'importata' | 'duplicata' | 'open_day_non_trovato' | 'errore'
+
+export type GoogleFormImportLog = {
+  id: string
+  response_id: string | null
+  ricevuto_at: string
+  esito: EsitoImport
+  messaggio: string | null
+  booking_id: string | null
+  payload: Record<string, unknown>
 }
 
 export type Mdi = {
@@ -128,7 +194,6 @@ export type Mdi = {
   all_domicilio_citta: string | null
   all_domicilio_prov: string | null
   all_domicilio_cap: string | null
-
   corso_pref1_id: string | null
   corso_pref2_id: string | null
   corso_pref3_id: string | null
@@ -198,6 +263,8 @@ export interface Database {
           note?: string | null
           tipo?: TipoOpenDay
           stato?: StatoOpenDay
+          etichetta_modulo?: string | null
+          luogo_override?: string | null
         }
         Update: Partial<OpenDay>
       } & NoRelationships
@@ -263,6 +330,22 @@ export interface Database {
         }
         Update: Partial<Mdi>
       } & NoRelationships
+      impostazioni: {
+        Row: Impostazioni
+        Insert: never
+        Update: Partial<Omit<Impostazioni, 'id' | 'updated_at'>>
+      } & NoRelationships
+      notifiche: {
+        Row: Notifica
+        // Creazione solo via RPC (decidi_iscrizione / accoda_reminder).
+        Insert: never
+        Update: Partial<Pick<Notifica, 'stato' | 'errore' | 'sent_at'>>
+      } & NoRelationships
+      google_form_import_log: {
+        Row: GoogleFormImportLog
+        Insert: never
+        Update: never
+      } & NoRelationships
     }
     Views: Record<string, never>
     Functions: {
@@ -295,6 +378,10 @@ export interface Database {
       kiosk_dati_iscritto: {
         Args: { p_booking_id: string }
         Returns: KioskDatiIscritto[]
+      }
+      decidi_iscrizione: {
+        Args: { p_booking_id: string; p_approva: boolean; p_motivo?: string | null }
+        Returns: Booking
       }
       is_staff: {
         Args: Record<string, never>

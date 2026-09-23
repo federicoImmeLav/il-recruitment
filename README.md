@@ -20,7 +20,9 @@ vecchio portale (composizione classi, azioni scuole, stage, ecc.) non sono inclu
 
 1. Crea un nuovo progetto su [supabase.com](https://supabase.com) (piano Free).
 2. Apri **SQL Editor** e incolla in ordine il contenuto dei file in `supabase/migrations/`
-   (`0001_init_schema.sql`, poi `0002_rls_policies.sql`, poi `0003_seed_corsi.sql`, poi `0004_kiosk_mdi.sql`).
+   (`0001_init_schema.sql`, `0002_rls_policies.sql`, `0003_seed_corsi.sql`, `0004_kiosk_mdi.sql`,
+   `0005_stato_rifiutata.sql`, `0006_google_forms_notifiche.sql`). La `0007_cron_notifiche.sql`
+   va eseguita dopo aver configurato le notifiche (vedi sotto).
 3. In **Project Settings → API** copia `Project URL` e `anon public key`.
 
 ### 2. Variabili d'ambiente
@@ -44,6 +46,41 @@ npm run dev
 Non esiste self-signup pubblico. Per dare accesso all'area riservata (`/staff/...`) a te
 stesso o a un collega: **Supabase Dashboard → Authentication → Users → Invite user**.
 L'account viene collegato automaticamente a un profilo staff (tabella `profiles`).
+
+### 5. Iscrizioni da Google Moduli, conferme e promemoria
+
+Flusso: risposta al Google Modulo → iscrizione **"Da approvare"** nel Monitoraggio → lo staff
+approva o rifiuta → la famiglia riceve un messaggio con esito, data, ora e luogo → 2 giorni
+prima dell'Open Day parte un promemoria automatico ai confermati.
+
+**Canali di invio** (Impostazioni → Canale di invio):
+- **Email** — automatica e gratuita con [Brevo](https://www.brevo.com) (piano free: 300 email/giorno).
+- **WhatsApp manuale** — gratuito: nell'app il pulsante "Invia su WhatsApp" apre WhatsApp con il
+  messaggio già scritto, l'operatore preme Invia. Usato anche quando manca l'email.
+- **SMS / WhatsApp automatico** — a pagamento, predisposti in `supabase/functions/_shared/canali.ts`:
+  si attivano aggiungendo i secret del provider (SMS: `BREVO_SMS_SENDER`).
+
+**Configurazione** (una volta sola):
+
+1. **Brevo**: crea un account gratuito, verifica il mittente (idealmente un indirizzo
+   @immaginazioneelavoro.it — per la consegna migliore servono i record DNS SPF/DKIM che Brevo
+   indica, da chiedere a chi gestisce il dominio) e genera una **API key**.
+2. **Edge Functions** (dalla cartella del progetto; `<ref>` è l'id del progetto Supabase):
+   ```bash
+   npx supabase login
+   npx supabase functions deploy google-forms-webhook --project-ref <ref>
+   npx supabase functions deploy send-notifications --project-ref <ref>
+   npx supabase secrets set --project-ref <ref>      GOOGLE_FORMS_SECRET=<stringa-casuale-lunga>      NOTIFICHE_CRON_SECRET=<altra-stringa-casuale-lunga>      BREVO_API_KEY=<api-key-brevo>      NOTIFICHE_MITTENTE_EMAIL=<mittente-verificato>
+   ```
+   Le stringhe casuali si possono generare con `openssl rand -hex 32`. **Non vanno mai nel repo.**
+3. **Job pianificati**: nello SQL Editor salva nel Vault URL e segreto (vedi l'intestazione di
+   `0007_cron_notifiche.sql`), poi esegui `0007_cron_notifiche.sql`. Crea due job: promemoria
+   ogni mattina e invio della coda ogni 5 minuti.
+4. **Google Modulo**: segui [`integrations/google-forms/README.md`](integrations/google-forms/README.md)
+   (Apps Script + attivatore). In ogni Open Day dell'app compila **"Etichetta modulo Google"**
+   con il testo identico dell'opzione del menu.
+5. In **Impostazioni** sostituisci luogo, indicazioni e contatti fittizi con quelli reali e
+   controlla i testi dei messaggi (c'è l'anteprima).
 
 ## Comandi
 
@@ -91,6 +128,9 @@ imposta `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` in Project Settings → E
 Variables (mai nel codice).
 
 ## Note
+
+- Il Google Modulo dovrebbe riportare l'informativa privacy e avvisare che la famiglia verrà
+  contattata via email/WhatsApp/SMS per conferma e promemoria (i dati passano da Google e Brevo).
 
 - Export verso **INNOVAPLAN** (gestionale Wollo): non automatico in questo MVP. Ogni MDI
   ha un flag "esportato su INNOVAPLAN" gestito manualmente dallo staff.
