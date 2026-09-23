@@ -1,0 +1,99 @@
+import { useState } from 'react'
+import { Link } from 'react-router-dom'
+import { Card } from '../../components/ui/Card'
+import { Badge } from '../../components/ui/Badge'
+import { Button } from '../../components/ui/Button'
+import { Spinner, ErrorBanner } from '../../components/ui/Spinner'
+import { CapacityGauge } from '../../components/charts/CapacityGauge'
+import { useOpenDays } from '../../hooks/useOpenDays'
+import { useBookings } from '../../hooks/useBookings'
+import { useMdiList } from '../../hooks/useMdi'
+import { useRealtimeOpenDay } from '../../hooks/useRealtimeInvalidate'
+
+function KpiCard({ label, value, colorClass }: { label: string; value: number | string; colorClass: string }) {
+  return (
+    <Card className={`border-t-4 ${colorClass}`}>
+      <p className="text-xs font-bold uppercase tracking-wide text-text3">{label}</p>
+      <p className="mt-1 text-2xl font-black text-text">{value}</p>
+    </Card>
+  )
+}
+
+export function MonitoringDashboardPage() {
+  const { data: openDays, isLoading, error } = useOpenDays()
+  const [selectedId, setSelectedId] = useState<string | undefined>(undefined)
+
+  const aperti = openDays?.filter((od) => od.stato === 'aperto') ?? []
+  const effectiveSelectedId = selectedId ?? aperti[0]?.id
+
+  const { data: bookings } = useBookings(effectiveSelectedId)
+  const { data: mdiList } = useMdiList({ openDayId: effectiveSelectedId })
+  useRealtimeOpenDay(effectiveSelectedId)
+
+  const confermati = bookings?.filter((b) => b.status === 'confirmed' || b.status === 'walk_in').length ?? 0
+  const waitlist = bookings?.filter((b) => b.status === 'waitlist').length ?? 0
+  const checkedIn = bookings?.filter((b) => b.checked_in).length ?? 0
+  const selectedOpenDay = openDays?.find((od) => od.id === effectiveSelectedId)
+
+  return (
+    <div className="space-y-6">
+      <h1 className="text-lg font-bold text-text">Monitoraggio Open Day</h1>
+
+      {isLoading && <Spinner />}
+      {error && <ErrorBanner message="Errore nel caricamento degli Open Day." />}
+
+      {aperti.length === 0 && !isLoading && (
+        <Card>
+          <p className="text-sm text-text2">Nessun Open Day aperto al momento.</p>
+          <Link to="/staff/open-days" className="mt-3 inline-block">
+            <Button variant="blue">Crea un Open Day</Button>
+          </Link>
+        </Card>
+      )}
+
+      {aperti.length > 0 && (
+        <>
+          <div className="flex flex-wrap gap-2">
+            {aperti.map((od) => (
+              <button
+                key={od.id}
+                onClick={() => setSelectedId(od.id)}
+                className={`rounded-full border px-3 py-1 text-sm font-bold transition-colors ${
+                  effectiveSelectedId === od.id
+                    ? 'border-orange bg-orange-light text-orange-dark'
+                    : 'border-border text-text2 hover:bg-gray-light'
+                }`}
+              >
+                {new Date(od.data).toLocaleDateString('it-IT', { day: '2-digit', month: 'short' })} · {od.ora.slice(0, 5)}
+              </button>
+            ))}
+          </div>
+
+          {selectedOpenDay && (
+            <>
+              <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+                <KpiCard label="Confermati" value={confermati} colorClass="border-green" />
+                <KpiCard label="Lista d'attesa" value={waitlist} colorClass="border-blue" />
+                <KpiCard label="Check-in" value={checkedIn} colorClass="border-orange" />
+                <KpiCard label="MDI raccolte" value={mdiList?.length ?? 0} colorClass="border-purple" />
+              </div>
+
+              <Card>
+                <CapacityGauge value={confermati} max={selectedOpenDay.posti_max} label="Capienza Open Day" />
+              </Card>
+
+              <div className="flex flex-wrap gap-2">
+                <Link to={`/staff/open-days/${selectedOpenDay.id}/iscrizioni`}>
+                  <Button variant="blue">Gestisci iscrizioni e check-in</Button>
+                </Link>
+                <Badge color={waitlist > 0 ? 'orange' : 'green'}>
+                  {waitlist > 0 ? `${waitlist} in lista d'attesa` : 'Nessuna lista d’attesa'}
+                </Badge>
+              </div>
+            </>
+          )}
+        </>
+      )}
+    </div>
+  )
+}

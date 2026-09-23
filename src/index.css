@@ -1,0 +1,82 @@
+@import url('https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700;900&display=swap');
+@import "tailwindcss";
+
+:root {
+  --red: #b71928;
+  --red-l: #f5e6e8;
+  --red-d: #8f1320;
+
+  --orange: #ec6726;
+  --orange-l: #fdf0e9;
+  --orange-d: #c45520;
+
+  --blue: #007db2;
+  --blue-l: #e5f3f9;
+  --blue-d: #005f88;
+
+  --green: #6eab27;
+  --green-l: #eef5e6;
+  --green-d: #527f1d;
+
+  --purple: #7c5cbf;
+  --purple-l: #ede5f9;
+  --purple-d: #5b3db0;
+
+  --gray: #6f6f6e;
+  --gray-l: #f5f5f5;
+  --gray-xl: #fafafa;
+
+  --border: #e8e8e8;
+  --border-d: #d0d0d0;
+
+  --text: #1a1a1a;
+  --text2: #555555;
+  --text3: #888888;
+
+  --radius: 8px;
+  --shadow: 0 1px 4px rgba(0, 0, 0, 0.08), 0 4px 20px rgba(0, 0, 0, 0.05);
+}
+
+@theme {
+  --font-sans: 'Lato', sans-serif;
+
+  --color-red: var(--red);
+  --color-red-light: var(--red-l);
+  --color-red-dark: var(--red-d);
+
+  --color-orange: var(--orange);
+  --color-orange-light: var(--orange-l);
+  --color-orange-dark: var(--orange-d);
+
+  --color-blue: var(--blue);
+  --color-blue-light: var(--blue-l);
+  --color-blue-dark: var(--blue-d);
+
+  --color-green: var(--green);
+  --color-green-light: var(--green-l);
+  --color-green-dark: var(--green-d);
+
+  --color-purple: var(--purple);
+  --color-purple-light: var(--purple-l);
+  --color-purple-dark: var(--purple-d);
+
+  --color-gray: var(--gray);
+  --color-gray-light: var(--gray-l);
+  --color-gray-xlight: var(--gray-xl);
+
+  --color-border: var(--border);
+  --color-border-dark: var(--border-d);
+
+  --color-text: var(--text);
+  --color-text2: var(--text2);
+  --color-text3: var(--text3);
+
+  --radius-il: var(--radius);
+  --shadow-il: var(--shadow);
+}
+
+body {
+  font-family: 'Lato', sans-serif;
+  color: var(--text);
+  background: var(--gray-xl);
+}

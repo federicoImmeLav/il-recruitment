@@ -1,0 +1,125 @@
+import { Modal } from '../../components/ui/Modal'
+import { Button } from '../../components/ui/Button'
+import { Badge } from '../../components/ui/Badge'
+import { Spinner, ErrorBanner } from '../../components/ui/Spinner'
+import { useMdiDetail, useToggleExportInnovaplan } from '../../hooks/useMdi'
+import { useCorsi } from '../../hooks/useCorsi'
+import { useAuth } from '../auth/AuthProvider'
+import { SOSTEGNO_STATO_LABEL } from '../../lib/constants'
+
+function Row({ label, value }: { label: string; value: string | number | null | undefined }) {
+  if (!value) return null
+  return (
+    <div className="flex justify-between gap-4 py-1 text-sm">
+      <span className="text-text3">{label}</span>
+      <span className="text-right font-bold text-text">{value}</span>
+    </div>
+  )
+}
+
+export function MdiDetailDrawer({ id, onClose }: { id: string; onClose: () => void }) {
+  const { data: mdi, isLoading, error } = useMdiDetail(id)
+  const { data: corsi } = useCorsi()
+  const { profile } = useAuth()
+  const toggleExport = useToggleExportInnovaplan()
+
+  const corsoNome = (corsoId: string | null) => corsi?.find((c) => c.id === corsoId)?.nome
+
+  return (
+    <Modal
+      title="Dettaglio MDI"
+      onClose={onClose}
+      footer={
+        mdi &&
+        profile && (
+          <Button
+            variant={mdi.esportato_innovaplan ? 'ghost' : 'success'}
+            disabled={toggleExport.isPending}
+            onClick={() =>
+              void toggleExport.mutateAsync({ id: mdi.id, esportato: !mdi.esportato_innovaplan, staffId: profile.id })
+            }
+          >
+            {mdi.esportato_innovaplan ? 'Segna come da esportare' : 'Segna come esportata su INNOVAPLAN'}
+          </Button>
+        )
+      }
+    >
+      {isLoading && <Spinner />}
+      {error && <ErrorBanner message="Errore nel caricamento della MDI." />}
+      {mdi && (
+        <div className="space-y-5">
+          <div className="flex items-center justify-between">
+            <h3 className="text-base font-bold text-text">
+              {mdi.all_cognome} {mdi.all_nome}
+            </h3>
+            <Badge color={mdi.esportato_innovaplan ? 'green' : 'orange'}>
+              {mdi.esportato_innovaplan ? 'Esportata su INNOVAPLAN' : 'Da esportare'}
+            </Badge>
+          </div>
+
+          <section>
+            <p className="mb-1 text-xs font-bold uppercase tracking-wide text-text3">Allievo/a</p>
+            <Row label="Data di nascita" value={new Date(mdi.all_data_nascita).toLocaleDateString('it-IT')} />
+            <Row label="Annualità / sezione" value={`${mdi.all_annualita}ª ${mdi.all_sezione ?? ''}`} />
+            <Row label="Nato/a a" value={mdi.all_nato_a} />
+            <Row label="Cittadinanza" value={mdi.all_cittadinanza} />
+            <Row label="Scuola di provenienza" value={mdi.all_scuola_provenienza} />
+            <Row label="Residenza" value={`${mdi.all_residenza_via}, ${mdi.all_residenza_citta}`} />
+          </section>
+
+          <section>
+            <p className="mb-1 text-xs font-bold uppercase tracking-wide text-text3">Accompagnatore</p>
+            <Row label="Nome" value={`${mdi.acc_cognome} ${mdi.acc_nome} (${mdi.acc_qualita})`} />
+            <Row label="Cellulare" value={mdi.acc_cellulare} />
+            <Row label="Email" value={mdi.acc_email} />
+          </section>
+
+          <section>
+            <p className="mb-1 text-xs font-bold uppercase tracking-wide text-text3">Corsi di interesse</p>
+            <Row label="1ª preferenza" value={corsoNome(mdi.corso_pref1_id)} />
+            <Row label="2ª preferenza" value={corsoNome(mdi.corso_pref2_id)} />
+            <Row label="3ª preferenza" value={corsoNome(mdi.corso_pref3_id)} />
+          </section>
+
+          <section>
+            <p className="mb-1 text-xs font-bold uppercase tracking-wide text-text3">Sostegno / canale</p>
+            <Row label="Sostegno" value={SOSTEGNO_STATO_LABEL[mdi.sostegno_stato]} />
+            <Row
+              label="Certificazioni"
+              value={
+                [
+                  mdi.sostegno_asl && 'ASL',
+                  mdi.sostegno_diagnosi_funzionale && 'Diagnosi Funzionale',
+                  mdi.sostegno_bes && 'BES',
+                  mdi.sostegno_dsa && 'DSA',
+                ]
+                  .filter(Boolean)
+                  .join(', ') || null
+              }
+            />
+            <Row
+              label="Canale di conoscenza"
+              value={
+                [
+                  mdi.canale_orientamento_scuola && 'Orientamento a scuola',
+                  mdi.canale_open_day && 'Open Day',
+                  mdi.canale_ricerca_online && 'Ricerca online',
+                  mdi.canale_passaparola && 'Passaparola',
+                  mdi.canale_altro && `Altro: ${mdi.canale_altro_testo}`,
+                ]
+                  .filter(Boolean)
+                  .join(', ') || null
+              }
+            />
+          </section>
+
+          {mdi.esportato_innovaplan_at && (
+            <p className="text-xs text-text3">
+              Esportata il {new Date(mdi.esportato_innovaplan_at).toLocaleString('it-IT')}
+            </p>
+          )}
+        </div>
+      )}
+    </Modal>
+  )
+}
