@@ -14,19 +14,23 @@ function useDebounced(value: string, ms = 250) {
 }
 
 interface Props {
-  openDayId: string | undefined
   selezionato: KioskDatiIscritto | null
   onSeleziona: (dati: KioskDatiIscritto | null) => void
   onAvanti: () => void
 }
 
-export function StepIdentificazione({ openDayId, selezionato, onSeleziona, onAvanti }: Props) {
+function dataOpenDay(iso: string) {
+  const [y, m, d] = iso.split('-').map(Number)
+  return new Date(y, m - 1, d).toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric', month: 'long' })
+}
+
+export function StepIdentificazione({ selezionato, onSeleziona, onAvanti }: Props) {
   const [query, setQuery] = useState('')
   const [loadingId, setLoadingId] = useState<string | null>(null)
   const [errore, setErrore] = useState<string | null>(null)
   const debounced = useDebounced(query)
-  const ricerca = useKioskCercaIscritti(openDayId, debounced)
-  const mostraRisultati = !selezionato && debounced.trim().length >= 2 && !!openDayId
+  const ricerca = useKioskCercaIscritti(debounced)
+  const mostraRisultati = !selezionato && debounced.trim().length >= 2
 
   async function scegli(iscritto: KioskIscritto) {
     setErrore(null)
@@ -74,49 +78,46 @@ export function StepIdentificazione({ openDayId, selezionato, onSeleziona, onAva
 
   return (
     <div className="space-y-4">
-      {openDayId ? (
-        <div className="relative">
-          <input
-            type="search"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Digita il cognome dell'allievo…"
-            autoComplete="off"
-            autoFocus
-            className="w-full rounded-il border-2 border-blue px-4 py-4 text-lg focus:outline-none focus:ring-4 focus:ring-blue/15 sm:text-xl"
-          />
-          {mostraRisultati && (
-            <div className="mt-1 overflow-hidden rounded-il border border-border bg-white shadow-il">
-              {ricerca.isLoading && <p className="px-4 py-3 text-sm text-text3">Ricerca in corso…</p>}
-              {ricerca.data?.length === 0 && (
-                <p className="px-4 py-3 text-sm text-text2">
-                  Nessun risultato per “{debounced.trim()}”. Controlla il cognome oppure compila il modulo a mano.
-                </p>
-              )}
-              {ricerca.data?.map((p) => (
-                <button
-                  key={p.id}
-                  type="button"
-                  disabled={loadingId !== null}
-                  onClick={() => void scegli(p)}
-                  className="block w-full border-b border-border px-4 py-3 text-left last:border-b-0 hover:bg-blue-light disabled:opacity-60"
-                >
-                  <span className="block text-base font-bold text-text">
-                    {p.cognome} {p.nome}
-                  </span>
-                  <span className="block text-sm text-text3">
-                    {loadingId === p.id ? 'Caricamento…' : p.scuola || '—'}
-                  </span>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-      ) : (
-        <p className="rounded-md border-l-4 border-orange bg-orange-light px-4 py-3 text-sm text-orange-dark">
-          Nessun Open Day in corso oggi: la ricerca delle registrazioni non è disponibile. Compila il modulo a mano.
-        </p>
-      )}
+      <div className="relative">
+        <input
+          type="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Digita il cognome o il nome dell'allievo…"
+          autoComplete="off"
+          autoFocus
+          className="w-full rounded-il border-2 border-blue px-4 py-4 text-lg focus:outline-none focus:ring-4 focus:ring-blue/15 sm:text-xl"
+        />
+        {mostraRisultati && (
+          <div className="mt-1 overflow-hidden rounded-il border border-border bg-white shadow-il">
+            {ricerca.isLoading && <p className="px-4 py-3 text-sm text-text3">Ricerca in corso…</p>}
+            {ricerca.data?.length === 0 && (
+              <p className="px-4 py-3 text-sm text-text2">
+                Nessun iscritto trovato per “{debounced.trim()}”. Controlla come l’hai scritto oppure compila il
+                modulo a mano.
+              </p>
+            )}
+            {ricerca.data?.map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                disabled={loadingId !== null}
+                onClick={() => void scegli(p)}
+                className="block w-full border-b border-border px-4 py-3 text-left last:border-b-0 hover:bg-blue-light disabled:opacity-60"
+              >
+                <span className="block text-base font-bold text-text">
+                  {p.cognome} {p.nome}
+                </span>
+                <span className="block text-sm text-text3">
+                  {loadingId === p.id
+                    ? 'Caricamento…'
+                    : `${p.scuola || 'Scuola non indicata'} · Open Day ${dataOpenDay(p.open_day_data)}`}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
 
       {(errore || ricerca.error) && (
         <ErrorBanner message={errore ?? 'Ricerca non disponibile al momento. Puoi compilare il modulo a mano.'} />

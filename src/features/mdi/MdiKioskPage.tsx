@@ -17,7 +17,7 @@ import { StepCorsiCertificazioni } from './steps/StepCorsiCertificazioni'
 import { StepPrivacy } from './steps/StepPrivacy'
 
 const STEP_SUB = [
-  "Digita il cognome dell'allievo per trovare la registrazione all'Open Day, oppure compila i dati se non sei ancora registrato.",
+  "Digita il cognome o il nome dell'allievo per trovare l'iscrizione all'Open Day, oppure compila i dati se non sei ancora iscritto.",
   'Inizia dal codice fiscale: sesso, data e luogo di nascita si compilano da soli. I campi con il badge blu vengono dalla registrazione.',
   'Dati del genitore o tutore che firma il modulo.',
   'Indica fino a 3 corsi in ordine di preferenza. Se hai cambiato idea rispetto alla registrazione, modifica liberamente.',
@@ -219,7 +219,6 @@ export function MdiKioskPage() {
           <form onSubmit={(e) => e.preventDefault()} noValidate className="space-y-5">
             {step === 0 && (
               <StepIdentificazione
-                openDayId={openDayId}
                 selezionato={iscritto}
                 onSeleziona={selezionaIscritto}
                 onAvanti={() => setStep(1)}

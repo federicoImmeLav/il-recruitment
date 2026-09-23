@@ -21,7 +21,8 @@ vecchio portale (composizione classi, azioni scuole, stage, ecc.) non sono inclu
 1. Crea un nuovo progetto su [supabase.com](https://supabase.com) (piano Free).
 2. Apri **SQL Editor** e incolla in ordine il contenuto dei file in `supabase/migrations/`
    (`0001_init_schema.sql`, `0002_rls_policies.sql`, `0003_seed_corsi.sql`, `0004_kiosk_mdi.sql`,
-   `0005_stato_rifiutata.sql`, `0006_google_forms_notifiche.sql`, `0008_mdi_anagrafica_innovaplan.sql`).
+   `0005_stato_rifiutata.sql`, `0006_google_forms_notifiche.sql`, `0008_mdi_anagrafica_innovaplan.sql`,
+   `0009_kiosk_ricerca_estesa.sql`).
    La `0007_cron_notifiche.sql` va eseguita dopo aver configurato le notifiche (vedi sotto).
 3. In **Project Settings → API** copia `Project URL` e `anon public key`.
 

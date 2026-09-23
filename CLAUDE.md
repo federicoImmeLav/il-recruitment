@@ -25,7 +25,8 @@ SMS — NON vanno aggiunte se non esplicitamente richiesto):
   `src/index.css` e sono mappati in `@theme`).
 - Supabase (Postgres + Auth + Realtime), piano Free. Schema in `supabase/migrations/`
   (0001 schema, 0002 RLS/RPC, 0003 seed corsi, 0004 kiosk MDI, 0005–0007 import Google
-  Moduli + approvazione + coda notifiche + pg_cron, 0008 anagrafica MDI per INNOVAPLAN) — **fonte di verità**, da incollare in
+  Moduli + approvazione + coda notifiche + pg_cron, 0008 anagrafica MDI per INNOVAPLAN, 0009 ricerca kiosk
+  estesa a tutti gli iscritti dell'edizione attiva, scelta esplicita dell'utente) — **fonte di verità**, da incollare in
   ordine nello SQL Editor del progetto Supabase.
 - React Router v6, TanStack Query, React Hook Form (niente Zod: validazione via regole
   `register()` di RHF, tenuta volutamente semplice).

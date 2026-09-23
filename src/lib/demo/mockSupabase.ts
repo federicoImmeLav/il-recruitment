@@ -484,10 +484,14 @@ async function invokeFunction(name: string): Promise<Result> {
   return { data: { inviate }, error: null }
 }
 
-function presentiOggi(openDayId: string) {
-  return (db.bookings as unknown as Booking[]).filter(
-    (b) => b.open_day_id === openDayId && b.checked_in && b.status !== 'cancelled',
-  )
+function iscrittiRicercabili() {
+  const ods = db.open_days as unknown as OpenDay[]
+  const edizioniAttive = new Set((db.edizioni as unknown as Edizione[]).filter((e) => e.stato === 'attiva').map((e) => e.id))
+  return (db.bookings as unknown as Booking[]).flatMap((b) => {
+    const od = ods.find((o) => o.id === b.open_day_id)
+    const ok = od && od.stato !== 'annullato' && edizioniAttive.has(od.edizione_id) && !['cancelled', 'rejected'].includes(b.status)
+    return ok ? [{ b, od }] : []
+  })
 }
 
 async function rpc(fn: string, args: Row): Promise<Result> {
@@ -529,18 +533,21 @@ async function rpc(fn: string, args: Row): Promise<Result> {
     return { data: { ...booking }, error: null }
   }
   if (fn === 'kiosk_cerca_iscritti') {
+    // Replica di 0009: qualsiasi Open Day non annullato dell'edizione attiva, per cognome o nome.
     const q = String(args.p_query ?? '').trim().toLowerCase()
-    if (!od || od.data !== isoDate(0) || q.length < 2) return { data: [], error: null }
-    const rows = presentiOggi(od.id)
-      .filter((b) => b.cognome.toLowerCase().startsWith(q))
+    if (q.length < 2) return { data: [], error: null }
+    const rows = iscrittiRicercabili()
+      .filter(({ b }) =>
+        [b.cognome, b.nome, `${b.cognome} ${b.nome}`, `${b.nome} ${b.cognome}`].some((t) => t.toLowerCase().startsWith(q)),
+      )
+      .sort((x, y) => `${x.b.cognome} ${x.b.nome}`.localeCompare(`${y.b.cognome} ${y.b.nome}`, 'it'))
       .slice(0, 10)
-      .map(({ id, cognome, nome, scuola }) => ({ id, cognome, nome, scuola }))
+      .map(({ b, od }) => ({ id: b.id, cognome: b.cognome, nome: b.nome, scuola: b.scuola, open_day_data: od.data }))
     return { data: rows, error: null }
   }
   if (fn === 'kiosk_dati_iscritto') {
-    const b = (db.bookings as unknown as Booking[]).find((x) => x.id === args.p_booking_id)
-    const odB = b && (db.open_days as unknown as OpenDay[]).find((o) => o.id === b.open_day_id)
-    if (!b || !odB || odB.data !== isoDate(0) || !b.checked_in || b.status === 'cancelled') return { data: [], error: null }
+    const b = iscrittiRicercabili().find(({ b: x }) => x.id === args.p_booking_id)?.b
+    if (!b) return { data: [], error: null }
     const { id, open_day_id, cognome, nome, data_nascita, scuola, telefono, email, corso_id, corso2_id, acc_cognome, acc_nome } = b
     return {
       data: [{ id, open_day_id, cognome, nome, data_nascita, scuola, telefono, email, corso_id, corso2_id, acc_cognome, acc_nome }],

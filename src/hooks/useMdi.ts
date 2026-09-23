@@ -61,15 +61,15 @@ export function useCreateMdi() {
   })
 }
 
-/** Ricerca iscritti presenti oggi all'open day (RPC pubblica, vedi 0004_kiosk_mdi.sql). */
-export function useKioskCercaIscritti(openDayId: string | undefined, query: string) {
+/** Ricerca per cognome o nome tra gli iscritti agli Open Day dell'edizione attiva (RPC pubblica, 0009). */
+export function useKioskCercaIscritti(query: string) {
   const q = query.trim()
   return useQuery({
-    queryKey: ['kiosk_cerca_iscritti', openDayId, q.toLowerCase()],
-    enabled: !!openDayId && q.length >= 2,
+    queryKey: ['kiosk_cerca_iscritti', q.toLowerCase()],
+    enabled: q.length >= 2,
     staleTime: 30_000,
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('kiosk_cerca_iscritti', { p_open_day_id: openDayId!, p_query: q })
+      const { data, error } = await supabase.rpc('kiosk_cerca_iscritti', { p_query: q })
       if (error) throw error
       return (data ?? []) as KioskIscritto[]
     },

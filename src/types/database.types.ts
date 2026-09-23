@@ -56,8 +56,8 @@ export type OpenDay = {
   updated_at: string
 }
 
-/** Risultato di kiosk_cerca_iscritti (0004_kiosk_mdi.sql): solo dati non di contatto. */
-export type KioskIscritto = { id: string; cognome: string; nome: string; scuola: string | null }
+/** Risultato di kiosk_cerca_iscritti (0009_kiosk_ricerca_estesa.sql): solo dati non di contatto. */
+export type KioskIscritto = { id: string; cognome: string; nome: string; scuola: string | null; open_day_data: string }
 
 /** Risultato di kiosk_dati_iscritto: campi per precompilare la MDI. */
 export type KioskDatiIscritto = Pick<
@@ -434,7 +434,7 @@ export interface Database {
         Returns: number
       }
       kiosk_cerca_iscritti: {
-        Args: { p_open_day_id: string; p_query: string }
+        Args: { p_query: string }
         Returns: KioskIscritto[]
       }
       kiosk_dati_iscritto: {
