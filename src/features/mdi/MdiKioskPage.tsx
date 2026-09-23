@@ -11,12 +11,15 @@ import { MdiPrintDocument } from './MdiPrintDocument'
 import { MDI_DEFAULT_VALUES, STEP_FIELDS, STEP_TITLES, type MdiFormValues } from './mdiFormTypes'
 import { StepIdentificazione } from './steps/StepIdentificazione'
 import { StepDatiAllievo } from './steps/StepDatiAllievo'
+import { StepGenitore } from './steps/StepGenitore'
+import { mdiDaForm } from './mdiDaForm'
 import { StepCorsiCertificazioni } from './steps/StepCorsiCertificazioni'
 import { StepPrivacy } from './steps/StepPrivacy'
 
 const STEP_SUB = [
   "Digita il cognome dell'allievo per trovare la registrazione all'Open Day, oppure compila i dati se non sei ancora registrato.",
-  'I campi con il badge blu sono precompilati dalla registrazione: puoi comunque modificarli.',
+  'Inizia dal codice fiscale: sesso, data e luogo di nascita si compilano da soli. I campi con il badge blu vengono dalla registrazione.',
+  'Dati del genitore o tutore che firma il modulo.',
   'Indica fino a 3 corsi in ordine di preferenza. Se hai cambiato idea rispetto alla registrazione, modifica liberamente.',
   'Leggi le informative ed esprimi il consenso per ciascun punto. La firma olografa verrà raccolta sulla stampa.',
   '',
@@ -163,53 +166,9 @@ export function MdiKioskPage() {
       corso_pref3_id: prefs[2] ?? '',
     }
     try {
-      await createMdi.mutateAsync({
-        open_day_id: iscritto?.open_day_id ?? openDayId ?? null,
-        booking_id: iscritto?.id ?? null,
-        acc_cognome: v.acc_cognome.trim(),
-        acc_nome: v.acc_nome.trim(),
-        acc_qualita: v.acc_qualita as 'genitore' | 'tutore',
-        acc_cellulare: v.acc_cellulare.trim(),
-        acc_email: v.acc_email.trim(),
-        all_cognome: v.all_cognome.trim(),
-        all_nome: v.all_nome.trim(),
-        all_data_nascita: v.all_data_nascita,
-        all_annualita: Number(v.all_annualita),
-        all_sezione: v.all_sezione || null,
-        all_nato_a: v.all_nato_a.trim(),
-        all_cittadinanza: v.all_cittadinanza.trim(),
-        all_scuola_provenienza: v.all_scuola_provenienza.trim() || null,
-        all_residenza_via: v.all_residenza_via.trim(),
-        all_residenza_citta: v.all_residenza_citta.trim(),
-        all_residenza_prov: v.all_residenza_prov.trim().toUpperCase() || null,
-        all_residenza_cap: v.all_residenza_cap.trim() || null,
-        all_domicilio_diverso: v.all_domicilio_diverso,
-        all_domicilio_via: v.all_domicilio_diverso ? v.all_domicilio_via.trim() || null : null,
-        all_domicilio_citta: v.all_domicilio_diverso ? v.all_domicilio_citta.trim() || null : null,
-        all_domicilio_prov: v.all_domicilio_diverso ? v.all_domicilio_prov.trim().toUpperCase() || null : null,
-        all_domicilio_cap: v.all_domicilio_diverso ? v.all_domicilio_cap.trim() || null : null,
-        corso_pref1_id: prefs[0] ?? null,
-        corso_pref2_id: prefs[1] ?? null,
-        corso_pref3_id: prefs[2] ?? null,
-        sostegno_stato: v.sostegno_stato || 'mai',
-        sostegno_asl: v.sostegno_asl,
-        sostegno_diagnosi_funzionale: v.sostegno_diagnosi_funzionale,
-        sostegno_bes: v.sostegno_bes,
-        sostegno_dsa: v.sostegno_dsa,
-        canale_orientamento_scuola: v.canale_orientamento_scuola,
-        canale_open_day: v.canale_open_day,
-        canale_ricerca_online: v.canale_ricerca_online,
-        canale_passaparola: v.canale_passaparola,
-        canale_altro: v.canale_altro,
-        canale_altro_testo: v.canale_altro ? v.canale_altro_testo.trim() || null : null,
-        consenso_privacy_a: v.consenso_privacy_a === 'si',
-        consenso_privacy_b: v.consenso_privacy_b === 'si',
-        consenso_foto_realizzare: v.consenso_foto_realizzare === 'si',
-        consenso_foto_utilizzare: v.consenso_foto_utilizzare === 'si',
-        consenso_foto_comunicare: v.consenso_foto_comunicare === 'si',
-        // Nel modulo la dichiarazione per firma di un solo genitore compare solo se firma un genitore.
-        dichiarazione_firma_genitore: v.acc_qualita === 'genitore',
-      })
+      await createMdi.mutateAsync(
+        mdiDaForm(v, { openDayId: iscritto?.open_day_id ?? openDayId ?? null, bookingId: iscritto?.id ?? null }),
+      )
       setInviata(valori)
       stampa()
     } catch {
@@ -220,6 +179,7 @@ export function MdiKioskPage() {
   const titoli = [
     'Benvenuto!',
     "Dati dell'allievo",
+    'Genitore / tutore',
     'Corsi di interesse e certificazioni',
     'Informativa privacy e consensi',
     inviata ? 'Grazie!' : `Grazie, ${getValues('all_nome')} ${getValues('all_cognome')}!`,
@@ -266,10 +226,11 @@ export function MdiKioskPage() {
               />
             )}
             {step === 1 && <StepDatiAllievo precompilati={precompilati} />}
-            {step === 2 && <StepCorsiCertificazioni precompilati={precompilati} />}
-            {step === 3 && <StepPrivacy />}
+            {step === 2 && <StepGenitore precompilati={precompilati} />}
+            {step === 3 && <StepCorsiCertificazioni precompilati={precompilati} />}
+            {step === 4 && <StepPrivacy />}
 
-            {step === 4 && (
+            {step === 5 && (
               <div className="rounded-il border border-border bg-white px-6 py-12 text-center">
                 <div className="mb-4 text-6xl" aria-hidden>
                   📋
@@ -321,7 +282,7 @@ export function MdiKioskPage() {
                 <Button type="button" variant="ghost" className="px-7 py-3 text-[15px]" onClick={indietro}>
                   ← Indietro
                 </Button>
-                {step < 4 && (
+                {step < 5 && (
                   <Button type="button" variant="blue" className="px-7 py-3 text-[15px]" onClick={() => void avanti()}>
                     Avanti →
                   </Button>

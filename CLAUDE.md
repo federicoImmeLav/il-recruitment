@@ -25,11 +25,16 @@ SMS — NON vanno aggiunte se non esplicitamente richiesto):
   `src/index.css` e sono mappati in `@theme`).
 - Supabase (Postgres + Auth + Realtime), piano Free. Schema in `supabase/migrations/`
   (0001 schema, 0002 RLS/RPC, 0003 seed corsi, 0004 kiosk MDI, 0005–0007 import Google
-  Moduli + approvazione + coda notifiche + pg_cron) — **fonte di verità**, da incollare in
+  Moduli + approvazione + coda notifiche + pg_cron, 0008 anagrafica MDI per INNOVAPLAN) — **fonte di verità**, da incollare in
   ordine nello SQL Editor del progetto Supabase.
 - React Router v6, TanStack Query, React Hook Form (niente Zod: validazione via regole
   `register()` di RHF, tenuta volutamente semplice).
-- Lint: `oxlint` (non ESLint). `npm run build` fa anche il type-check (`tsc -b`).
+- Lint: `oxlint` (non ESLint). `npm run build` fa anche il type-check (`tsc -b`). Test: Vitest
+  (`npm test`).
+- Export INNOVAPLAN: CSV nel tracciato SIDI "Alunni e scelte" (`src/features/mdi/export/`),
+  generato nel browser. Formato verificato byte per byte sull'esempio dell'utente in `risorse/`
+  (senza BOM, `;`, CRLF, `;` finale, spazio iniziale nell'intestazione). `risorse/` contiene
+  dati reali ed è gitignored: mai committarla né copiarne valori in codice/test.
 
 ## Sicurezza (repo GitHub pubblico, scelta esplicita dell'utente)
 

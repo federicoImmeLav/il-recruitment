@@ -80,11 +80,24 @@ export function MdiPrintDocument({ v, corsi }: { v: MdiFormValues; corsi: Corso[
           Genitore {box(v.acc_qualita === 'tutore')} Tutore
         </p>
         <p>
-          Del ragazzo/a <Campo className="w-lg">{`${v.all_cognome} ${v.all_nome}`}</Campo>
+          C.F. <Campo>{v.acc_codice_fiscale}</Campo> Sesso <Campo>{v.acc_sesso}</Campo> Nato/a a{' '}
+          <Campo>{v.acc_nascita === 'estero' ? v.acc_stato_nascita : v.acc_comune_nascita}</Campo> il{' '}
+          <Campo>{fmtData(v.acc_data_nascita)}</Campo> Cittadinanza <Campo>{v.acc_cittadinanza}</Campo>
+        </p>
+        {!v.acc_residenza_come_allievo && (
+          <p>
+            Residente in Via <Campo className="w-lg">{v.acc_residenza_via}</Campo> Città <Campo>{v.acc_residenza_citta}</Campo>{' '}
+            Prov <Campo>{v.acc_residenza_prov}</Campo> CAP <Campo>{v.acc_residenza_cap}</Campo>
+          </p>
+        )}
+        <p>
+          Del ragazzo/a <Campo className="w-lg">{`${v.all_cognome} ${v.all_nome}`}</Campo> C.F.{' '}
+          <Campo>{v.all_codice_fiscale}</Campo> Sesso <Campo>{v.all_sesso}</Campo>
         </p>
         <p>
-          Nato/a a <Campo>{v.all_nato_a}</Campo> il <Campo>{fmtData(v.all_data_nascita)}</Campo> Cittadinanza{' '}
-          <Campo>{v.all_cittadinanza}</Campo>
+          Nato/a a <Campo>{v.all_nascita === 'estero' ? v.all_stato_nascita : v.all_nato_a}</Campo> il{' '}
+          <Campo>{fmtData(v.all_data_nascita)}</Campo> Cittadinanza{' '}
+          <Campo>{[v.all_cittadinanza, v.all_cittadinanza_2].filter(Boolean).join(' / ')}</Campo>
         </p>
         <p>
           Residente in Via <Campo className="w-lg">{v.all_residenza_via}</Campo> Città <Campo>{v.all_residenza_citta}</Campo>{' '}
@@ -96,11 +109,17 @@ export function MdiPrintDocument({ v, corsi }: { v: MdiFormValues; corsi: Corso[
           </p>
         )}
         <p>
-          Scuola di provenienza <Campo className="w-lg">{v.all_scuola_provenienza}</Campo> Ann. / Sez.{' '}
+          Scuola di provenienza{' '}
+          <Campo className="w-lg">
+            {v.all_scuola_provenienza}
+            {v.all_scuola_provenienza_cod ? ` — ${v.all_scuola_provenienza_cod}` : ''}
+          </Campo>{' '}
+          Ann. / Sez.{' '}
           <Campo>{`${v.all_annualita}°${v.all_sezione ? ` — ${v.all_sezione}` : ''}`}</Campo>
         </p>
         <p>
-          Cellulare genitore <Campo>{v.acc_cellulare}</Campo> E-mail genitore <Campo className="w-lg">{v.acc_email}</Campo>
+          Cellulare genitore <Campo>{v.acc_cellulare}</Campo> E-mail genitore{' '}
+          <Campo className="w-lg">{[v.acc_email, v.acc_email_2].filter(Boolean).join(' / ')}</Campo>
         </p>
 
         <p className="mdi-print-blocco">

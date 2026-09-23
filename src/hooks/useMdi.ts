@@ -122,3 +122,21 @@ export function useUpdateMdiStato() {
     },
   })
 }
+
+/** Dopo il download del CSV per INNOVAPLAN: segna le MDI come esportate (conferma manuale dello staff). */
+export function useSegnaEsportate() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ ids, staffId }: { ids: string[]; staffId: string }) => {
+      const { error } = await supabase
+        .from('mdi')
+        .update({ esportato_innovaplan: true, esportato_innovaplan_at: new Date().toISOString(), esportato_innovaplan_by: staffId })
+        .in('id', ids)
+      if (error) throw error
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['mdi'] })
+      queryClient.invalidateQueries({ queryKey: ['mdi_detail'] })
+    },
+  })
+}

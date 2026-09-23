@@ -15,6 +15,7 @@ import type {
   Profile,
 } from '../../types/database.types'
 import { componiMessaggio } from '../messaggi'
+import { carattereControllo } from '../codiceFiscale'
 
 type Row = Record<string, unknown>
 
@@ -52,7 +53,18 @@ const corsi: Corso[] = corsiSeed.map(([nome, qualifica], i) => ({
   qualifica,
   ordine: i + 1,
   attivo: true,
+  // Da impostare in Impostazioni (la corrispondenza reale corso <-> codice la conosce lo staff).
+  codice_ministeriale: null,
 }))
+
+/** Codice fiscale di fantasia ma formalmente valido (carattere di controllo corretto). */
+function cfDemo(cognome: string, nome: string, data: string, femmina: boolean, luogo = 'F205') {
+  const lettere = (s: string) => (s.toUpperCase().replace(/[^A-Z]/g, '') + 'XXX').slice(0, 3)
+  const [y, m, d] = data.split('-')
+  const giorno = String(Number(d) + (femmina ? 40 : 0)).padStart(2, '0')
+  const primi15 = `${lettere(cognome)}${lettere(nome)}${y.slice(2)}${'ABCDEHLMPRST'[Number(m) - 1]}${giorno}${luogo}`
+  return primi15 + carattereControllo(primi15)
+}
 
 const edizioneId = uuid()
 const edizioni: Edizione[] = [
@@ -190,6 +202,8 @@ const impostazioni: Impostazioni = {
     "Gentile famiglia, purtroppo non possiamo confermare l'iscrizione di {nome} {cognome} all'Open Day di {data} alle ore {ora}. {motivo} Per informazioni o per scegliere un'altra data: {contatti}",
   testo_reminder:
     "Promemoria: {nome} {cognome} è atteso/a all'Open Day di Immaginazione e Lavoro {data} alle ore {ora} presso {luogo}. {indicazioni} Per informazioni: {contatti}",
+  codice_meccanografico_sede: 'MICF065007',
+  classificazione_ministeriale: 'R3',
   updated_at: now(),
 }
 
@@ -244,6 +258,31 @@ const mdi: Mdi[] = bookings.slice(0, 3).map((b, i) => ({
   all_domicilio_citta: null,
   all_domicilio_prov: null,
   all_domicilio_cap: null,
+  // La 3ª MDI e' "vecchia" (compilata prima dei nuovi campi): l'export la segnala come incompleta.
+  all_codice_fiscale: i < 2 ? cfDemo(b.cognome, b.nome, b.data_nascita ?? '2012-01-01', i === 1) : null,
+  all_sesso: i < 2 ? (i === 1 ? 'F' : 'M') : null,
+  all_nato_estero: false,
+  all_comune_nascita_cod: i < 2 ? 'F205' : null,
+  all_stato_nascita: null,
+  all_cittadinanza_2: null,
+  all_residenza_comune_cod: i < 2 ? 'F205' : null,
+  all_domicilio_comune_cod: null,
+  all_scuola_provenienza_cod: i < 2 ? 'MIMM000001' : null,
+  acc_codice_fiscale: i < 2 ? cfDemo(b.cognome, 'Genitore', '1980-05-10', true) : null,
+  acc_data_nascita: i < 2 ? '1980-05-10' : null,
+  acc_sesso: i < 2 ? 'F' : null,
+  acc_nato_estero: false,
+  acc_comune_nascita: i < 2 ? 'Milano' : null,
+  acc_comune_nascita_cod: i < 2 ? 'F205' : null,
+  acc_stato_nascita: null,
+  acc_cittadinanza: i < 2 ? 'Italia' : null,
+  acc_residenza_come_allievo: true,
+  acc_residenza_via: null,
+  acc_residenza_citta: null,
+  acc_residenza_comune_cod: null,
+  acc_residenza_prov: null,
+  acc_residenza_cap: null,
+  acc_email_2: null,
   corso_pref1_id: b.corso_id,
   corso_pref2_id: b.corso2_id,
   corso_pref3_id: null,
@@ -320,6 +359,10 @@ class MockQuery implements PromiseLike<Result> {
   }
   eq(col: string, value: unknown) {
     this.filters.push((r) => r[col] === value)
+    return this
+  }
+  in(col: string, values: unknown[]) {
+    this.filters.push((r) => values.includes(r[col]))
     return this
   }
   or(expr: string) {

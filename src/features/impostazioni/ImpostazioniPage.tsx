@@ -6,6 +6,8 @@ import { Card } from '../../components/ui/Card'
 import { InputField, TextareaField } from '../../components/ui/Field'
 import { ErrorBanner, Spinner } from '../../components/ui/Spinner'
 import { useImpostazioni, useImportLog, useUpdateImpostazioni } from '../../hooks/useNotifiche'
+import { useCorsi, useUpdateCodiceCorso } from '../../hooks/useCorsi'
+import type { Corso } from '../../types/database.types'
 import { CANALE_NOTIFICA_LABEL } from '../../lib/constants'
 import { SEGNAPOSTO, componiMessaggio } from '../../lib/messaggi'
 import type { CanaleNotifica, EsitoImport, Impostazioni } from '../../types/database.types'
@@ -30,6 +32,47 @@ const ESITO_BADGE: Record<EsitoImport, { color: 'green' | 'gray' | 'orange' | 'r
   duplicata: { color: 'gray', label: 'Già importata' },
   open_day_non_trovato: { color: 'orange', label: 'Open Day non trovato' },
   errore: { color: 'red', label: 'Errore' },
+}
+
+function CodiceCorso({ corso }: { corso: Corso }) {
+  const update = useUpdateCodiceCorso()
+  const [valore, setValore] = useState(corso.codice_ministeriale ?? '')
+  const salvato = (corso.codice_ministeriale ?? '') === valore.trim().toUpperCase()
+
+  return (
+    <div className="flex items-end gap-2">
+      <div className="flex-1">
+        <InputField
+          label={corso.nome}
+          placeholder="es. A199"
+          maxLength={10}
+          className="uppercase"
+          value={valore}
+          onChange={(e) => setValore(e.target.value)}
+          onBlur={() => {
+            if (!salvato) void update.mutateAsync({ id: corso.id, codice_ministeriale: valore.trim().toUpperCase() || null })
+          }}
+        />
+      </div>
+      <span className="pb-2 text-xs">
+        {update.isPending ? '…' : update.error ? <span className="text-red">errore</span> : salvato && valore ? <span className="text-green">✓</span> : null}
+      </span>
+    </div>
+  )
+}
+
+function CodiciCorsi() {
+  const { data: corsi } = useCorsi()
+  return (
+    <div className="space-y-3">
+      <p className="text-xs text-text3">
+        Codice dell’indirizzo di ogni corso nel SIDI (colonna IND_MINISTERIALE, es. A199): si salva uscendo dal campo.
+      </p>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        {corsi?.map((c) => <CodiceCorso key={c.id} corso={c} />)}
+      </div>
+    </div>
+  )
 }
 
 function ImportLog() {
@@ -106,6 +149,25 @@ export function ImpostazioniPage() {
             <p className="text-xs text-text3">
               Un singolo Open Day può avere luogo e indicazioni diversi: si impostano da Open Day → Modifica.
             </p>
+          </Card>
+
+          <Card className="space-y-4">
+            <h2 className="text-sm font-bold uppercase tracking-wide text-text2">Dati per INNOVAPLAN</h2>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <InputField
+                label="Codice meccanografico sede"
+                required
+                className="uppercase"
+                {...register('codice_meccanografico_sede', { required: true })}
+              />
+              <InputField
+                label="Classificazione ministeriale"
+                required
+                className="uppercase"
+                {...register('classificazione_ministeriale', { required: true })}
+              />
+            </div>
+            <CodiciCorsi />
           </Card>
 
           <Card className="space-y-3">

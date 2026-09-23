@@ -88,6 +88,8 @@ export type Corso = {
   qualifica: string
   ordine: number
   attivo: boolean
+  /** Codice ministeriale dell'indirizzo (IND_MINISTERIALE nel tracciato SIDI), es. A199. */
+  codice_ministeriale: string | null
 }
 
 export type Booking = {
@@ -151,6 +153,8 @@ export type Impostazioni = {
   testo_approvazione: string
   testo_rifiuto: string
   testo_reminder: string
+  codice_meccanografico_sede: string
+  classificazione_ministeriale: string
   updated_at: string
 }
 
@@ -194,6 +198,33 @@ export type Mdi = {
   all_domicilio_citta: string | null
   all_domicilio_prov: string | null
   all_domicilio_cap: string | null
+  // Aggiunti in 0008 per l'anagrafica INNOVAPLAN (codici comune = catastali ISTAT)
+  all_codice_fiscale: string | null
+  all_sesso: 'M' | 'F' | null
+  all_nato_estero: boolean
+  all_comune_nascita_cod: string | null
+  all_stato_nascita: string | null
+  all_cittadinanza_2: string | null
+  all_residenza_comune_cod: string | null
+  all_domicilio_comune_cod: string | null
+  all_scuola_provenienza_cod: string | null
+
+  acc_codice_fiscale: string | null
+  acc_data_nascita: string | null
+  acc_sesso: 'M' | 'F' | null
+  acc_nato_estero: boolean
+  acc_comune_nascita: string | null
+  acc_comune_nascita_cod: string | null
+  acc_stato_nascita: string | null
+  acc_cittadinanza: string | null
+  acc_residenza_come_allievo: boolean
+  acc_residenza_via: string | null
+  acc_residenza_citta: string | null
+  acc_residenza_comune_cod: string | null
+  acc_residenza_prov: string | null
+  acc_residenza_cap: string | null
+  acc_email_2: string | null
+
   corso_pref1_id: string | null
   corso_pref2_id: string | null
   corso_pref3_id: string | null
@@ -270,7 +301,14 @@ export interface Database {
       } & NoRelationships
       corsi: {
         Row: Corso
-        Insert: { id?: string; nome: string; qualifica: string; ordine?: number; attivo?: boolean }
+        Insert: {
+          id?: string
+          nome: string
+          qualifica: string
+          ordine?: number
+          attivo?: boolean
+          codice_ministeriale?: string | null
+        }
         Update: Partial<Corso>
       } & NoRelationships
       bookings: {
@@ -307,6 +345,30 @@ export interface Database {
           all_domicilio_citta?: string | null
           all_domicilio_prov?: string | null
           all_domicilio_cap?: string | null
+          all_codice_fiscale?: string | null
+          all_sesso?: 'M' | 'F' | null
+          all_nato_estero?: boolean
+          all_comune_nascita_cod?: string | null
+          all_stato_nascita?: string | null
+          all_cittadinanza_2?: string | null
+          all_residenza_comune_cod?: string | null
+          all_domicilio_comune_cod?: string | null
+          all_scuola_provenienza_cod?: string | null
+          acc_codice_fiscale?: string | null
+          acc_data_nascita?: string | null
+          acc_sesso?: 'M' | 'F' | null
+          acc_nato_estero?: boolean
+          acc_comune_nascita?: string | null
+          acc_comune_nascita_cod?: string | null
+          acc_stato_nascita?: string | null
+          acc_cittadinanza?: string | null
+          acc_residenza_come_allievo?: boolean
+          acc_residenza_via?: string | null
+          acc_residenza_citta?: string | null
+          acc_residenza_comune_cod?: string | null
+          acc_residenza_prov?: string | null
+          acc_residenza_cap?: string | null
+          acc_email_2?: string | null
           corso_pref1_id?: string | null
           corso_pref2_id?: string | null
           corso_pref3_id?: string | null

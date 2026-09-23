@@ -1,5 +1,6 @@
 import { useFormContext } from 'react-hook-form'
 import { CheckboxField, InputField, SelectField } from '../../../components/ui/Field'
+import { CampoCodiceFiscale, CampoComune, CampoLuogoNascita, CampoScuolaProvenienza, SelectPaese } from '../campiAnagrafici'
 import { ChoiceItem, KioskSection, PrefillBadge } from '../kioskUi'
 import { SEZIONI, type MdiFormValues } from '../mdiFormTypes'
 
@@ -9,61 +10,43 @@ export function StepDatiAllievo({ precompilati }: { precompilati: ReadonlySet<ke
   const {
     register,
     watch,
+    getValues,
     formState: { errors },
   } = useFormContext<MdiFormValues>()
   const domicilioDiverso = watch('all_domicilio_diverso')
   const badge = (campo: keyof MdiFormValues) => <PrefillBadge show={precompilati.has(campo)} />
+  const conDomicilio = () => getValues('all_domicilio_diverso')
 
   return (
     <div className="space-y-5">
-      <KioskSection title="Accompagnatore firmatario">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <InputField label="Cognome" required error={errors.acc_cognome?.message} hint={badge('acc_cognome')} {...register('acc_cognome', obbligatorio)} />
-          <InputField label="Nome" required error={errors.acc_nome?.message} hint={badge('acc_nome')} {...register('acc_nome', obbligatorio)} />
-        </div>
-        <div>
-          <p className="mb-1 text-xs font-bold uppercase tracking-wide text-text2">
-            In qualità di<span className="text-red"> *</span>
-          </p>
-          <div className="grid grid-cols-2 gap-3">
-            <ChoiceItem type="radio" value="genitore" label={<strong>Genitore</strong>} {...register('acc_qualita', obbligatorio)} />
-            <ChoiceItem type="radio" value="tutore" label={<strong>Tutore</strong>} {...register('acc_qualita', obbligatorio)} />
-          </div>
-          {errors.acc_qualita && <p className="mt-1 text-xs text-red">{errors.acc_qualita.message}</p>}
-        </div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <InputField
-            label="Cellulare"
-            type="tel"
-            inputMode="tel"
-            required
-            error={errors.acc_cellulare?.message}
-            hint={badge('acc_cellulare')}
-            {...register('acc_cellulare', {
-              ...obbligatorio,
-              pattern: { value: /^[+\d][\d\s./-]{5,}$/, message: 'Numero non valido' },
-            })}
-          />
-          <InputField
-            label="Email genitore"
-            type="email"
-            inputMode="email"
-            placeholder="nome@email.it"
-            required
-            error={errors.acc_email?.message}
-            hint={badge('acc_email')}
-            {...register('acc_email', {
-              ...obbligatorio,
-              pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: 'Email non valida' },
-            })}
-          />
-        </div>
-      </KioskSection>
-
       <KioskSection title="Dati anagrafici allievo">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <InputField label="Cognome" required error={errors.all_cognome?.message} hint={badge('all_cognome')} {...register('all_cognome', obbligatorio)} />
           <InputField label="Nome" required error={errors.all_nome?.message} hint={badge('all_nome')} {...register('all_nome', obbligatorio)} />
+        </div>
+        <CampoCodiceFiscale
+          campo="all_codice_fiscale"
+          label="Codice fiscale dell'allievo"
+          campi={{
+            sesso: 'all_sesso',
+            data: 'all_data_nascita',
+            nascita: 'all_nascita',
+            comune: 'all_nato_a',
+            comuneCod: 'all_comune_nascita_cod',
+            stato: 'all_stato_nascita',
+          }}
+        />
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <p className="mb-1 text-xs font-bold uppercase tracking-wide text-text2">
+              Sesso<span className="text-red"> *</span>
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <ChoiceItem type="radio" value="M" label={<strong>Maschio</strong>} {...register('all_sesso', obbligatorio)} />
+              <ChoiceItem type="radio" value="F" label={<strong>Femmina</strong>} {...register('all_sesso', obbligatorio)} />
+            </div>
+            {errors.all_sesso && <p className="mt-1 text-xs text-red">{errors.all_sesso.message}</p>}
+          </div>
           <InputField
             label="Data di nascita"
             type="date"
@@ -73,7 +56,16 @@ export function StepDatiAllievo({ precompilati }: { precompilati: ReadonlySet<ke
             {...register('all_data_nascita', obbligatorio)}
           />
         </div>
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <CampoLuogoNascita nascita="all_nascita" comune="all_nato_a" comuneCod="all_comune_nascita_cod" stato="all_stato_nascita" />
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <SelectPaese campo="all_cittadinanza" label="Cittadinanza" required />
+          <SelectPaese campo="all_cittadinanza_2" label="Seconda cittadinanza" vuoto="Nessuna" />
+        </div>
+      </KioskSection>
+
+      <KioskSection title="Scuola di provenienza">
+        <CampoScuolaProvenienza />
+        <div className="grid grid-cols-2 gap-4">
           <SelectField label="Annualità" required error={errors.all_annualita?.message} {...register('all_annualita', obbligatorio)}>
             <option value="">—</option>
             {[1, 2, 3, 4, 5].map((n) => (
@@ -90,46 +82,30 @@ export function StepDatiAllievo({ precompilati }: { precompilati: ReadonlySet<ke
               </option>
             ))}
           </SelectField>
-          <InputField label="Nato/a a" placeholder="es. Milano" required error={errors.all_nato_a?.message} {...register('all_nato_a', obbligatorio)} />
-          <InputField
-            label="Cittadinanza"
-            placeholder="es. Italiana"
-            required
-            error={errors.all_cittadinanza?.message}
-            {...register('all_cittadinanza', obbligatorio)}
-          />
         </div>
-        <InputField label="Scuola di provenienza" hint={badge('all_scuola_provenienza')} {...register('all_scuola_provenienza')} />
+      </KioskSection>
+
+      <KioskSection title="Residenza">
+        <InputField
+          label="Residente in Via"
+          placeholder="Via/Piazza e numero civico"
+          required
+          error={errors.all_residenza_via?.message}
+          {...register('all_residenza_via', obbligatorio)}
+        />
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
           <div className="sm:col-span-2">
-            <InputField
-              label="Residente in Via"
-              placeholder="Via/Piazza e numero civico"
-              required
-              error={errors.all_residenza_via?.message}
-              {...register('all_residenza_via', obbligatorio)}
-            />
+            <CampoComune nome="all_residenza_citta" cod="all_residenza_comune_cod" prov="all_residenza_prov" label="Comune" required />
           </div>
-          <InputField label="Città" required error={errors.all_residenza_citta?.message} {...register('all_residenza_citta', obbligatorio)} />
-          <div className="grid grid-cols-2 gap-4">
-            <InputField
-              label="Prov"
-              maxLength={2}
-              placeholder="MI"
-              className="uppercase"
-              error={errors.all_residenza_prov?.message}
-              {...register('all_residenza_prov', {
-                pattern: { value: /^[A-Za-z]{2}$/, message: '2 lettere' },
-              })}
-            />
-            <InputField
-              label="CAP"
-              maxLength={5}
-              inputMode="numeric"
-              error={errors.all_residenza_cap?.message}
-              {...register('all_residenza_cap', { pattern: { value: /^\d{5}$/, message: '5 cifre' } })}
-            />
-          </div>
+          <InputField label="Prov" maxLength={2} readOnly tabIndex={-1} className="bg-gray-xlight uppercase" {...register('all_residenza_prov')} />
+          <InputField
+            label="CAP"
+            maxLength={5}
+            inputMode="numeric"
+            required
+            error={errors.all_residenza_cap?.message}
+            {...register('all_residenza_cap', { ...obbligatorio, pattern: { value: /^\d{5}$/, message: '5 cifre' } })}
+          />
         </div>
 
         <CheckboxField label="Il domicilio è diverso dalla residenza" {...register('all_domicilio_diverso')} />
@@ -143,16 +119,15 @@ export function StepDatiAllievo({ precompilati }: { precompilati: ReadonlySet<ke
                 {...register('all_domicilio_via', { validate: (v, f) => !f.all_domicilio_diverso || !!v.trim() || 'Campo obbligatorio' })}
               />
             </div>
-            <InputField
-              label="Città"
+            <CampoComune
+              nome="all_domicilio_citta"
+              cod="all_domicilio_comune_cod"
+              prov="all_domicilio_prov"
+              label="Comune"
               required
-              error={errors.all_domicilio_citta?.message}
-              {...register('all_domicilio_citta', { validate: (v, f) => !f.all_domicilio_diverso || !!v.trim() || 'Campo obbligatorio' })}
+              attivo={conDomicilio}
             />
-            <div className="grid grid-cols-2 gap-4">
-              <InputField label="Prov" maxLength={2} className="uppercase" {...register('all_domicilio_prov')} />
-              <InputField label="CAP" maxLength={5} inputMode="numeric" {...register('all_domicilio_cap')} />
-            </div>
+            <InputField label="CAP" maxLength={5} inputMode="numeric" {...register('all_domicilio_cap')} />
           </div>
         )}
       </KioskSection>

@@ -6,11 +6,14 @@ import { Spinner, ErrorBanner } from '../../components/ui/Spinner'
 import { useMdiList } from '../../hooks/useMdi'
 import { useCorsi } from '../../hooks/useCorsi'
 import { MdiDetailDrawer } from './MdiDetailDrawer'
+import { Button } from '../../components/ui/Button'
+import { ExportInnovaplanModal } from './export/ExportInnovaplanModal'
 
 export function MdiListPage() {
   const [ricerca, setRicerca] = useState('')
   const [soloDaEsportare, setSoloDaEsportare] = useState(false)
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [exportAperto, setExportAperto] = useState(false)
   const { data: mdiList, isLoading, error } = useMdiList({ ricerca: ricerca || undefined, soloDaEsportare })
   const { data: corsi } = useCorsi()
 
@@ -18,7 +21,12 @@ export function MdiListPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-lg font-bold text-text">Manifestazioni di Interesse</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-lg font-bold text-text">Manifestazioni di Interesse</h1>
+        <Button variant="blue" onClick={() => setExportAperto(true)}>
+          ⬇ Esporta per INNOVAPLAN
+        </Button>
+      </div>
 
       <Card className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="w-full sm:max-w-xs">
@@ -56,6 +64,7 @@ export function MdiListPage() {
       </Card>
 
       {selectedId && <MdiDetailDrawer id={selectedId} onClose={() => setSelectedId(null)} />}
+      {exportAperto && <ExportInnovaplanModal onClose={() => setExportAperto(false)} />}
     </div>
   )
 }

@@ -59,19 +59,48 @@ export function MdiDetailDrawer({ id, onClose }: { id: string; onClose: () => vo
 
           <section>
             <p className="mb-1 text-xs font-bold uppercase tracking-wide text-text3">Allievo/a</p>
+            <Row label="Codice fiscale" value={mdi.all_codice_fiscale} />
+            <Row label="Sesso" value={mdi.all_sesso} />
             <Row label="Data di nascita" value={new Date(mdi.all_data_nascita).toLocaleDateString('it-IT')} />
             <Row label="Annualità / sezione" value={`${mdi.all_annualita}ª ${mdi.all_sezione ?? ''}`} />
-            <Row label="Nato/a a" value={mdi.all_nato_a} />
-            <Row label="Cittadinanza" value={mdi.all_cittadinanza} />
-            <Row label="Scuola di provenienza" value={mdi.all_scuola_provenienza} />
-            <Row label="Residenza" value={`${mdi.all_residenza_via}, ${mdi.all_residenza_citta}`} />
+            <Row
+              label="Nato/a a"
+              value={`${mdi.all_nato_a}${mdi.all_comune_nascita_cod ? ` (${mdi.all_comune_nascita_cod})` : ''}`}
+            />
+            <Row label="Cittadinanza" value={[mdi.all_cittadinanza, mdi.all_cittadinanza_2].filter(Boolean).join(' / ')} />
+            <Row
+              label="Scuola di provenienza"
+              value={
+                mdi.all_scuola_provenienza &&
+                `${mdi.all_scuola_provenienza}${mdi.all_scuola_provenienza_cod ? ` (${mdi.all_scuola_provenienza_cod})` : ''}`
+              }
+            />
+            <Row
+              label="Residenza"
+              value={`${mdi.all_residenza_via}, ${mdi.all_residenza_cap ?? ''} ${mdi.all_residenza_citta}${mdi.all_residenza_prov ? ` (${mdi.all_residenza_prov})` : ''}`}
+            />
+            {mdi.all_domicilio_diverso && (
+              <Row label="Domicilio" value={`${mdi.all_domicilio_via ?? ''}, ${mdi.all_domicilio_cap ?? ''} ${mdi.all_domicilio_citta ?? ''}`} />
+            )}
           </section>
 
           <section>
             <p className="mb-1 text-xs font-bold uppercase tracking-wide text-text3">Accompagnatore</p>
             <Row label="Nome" value={`${mdi.acc_cognome} ${mdi.acc_nome} (${mdi.acc_qualita})`} />
+            <Row label="Codice fiscale" value={mdi.acc_codice_fiscale} />
+            <Row
+              label="Nato/a"
+              value={
+                mdi.acc_data_nascita &&
+                `${mdi.acc_nato_estero ? mdi.acc_stato_nascita : mdi.acc_comune_nascita} il ${new Date(mdi.acc_data_nascita).toLocaleDateString('it-IT')}`
+              }
+            />
+            <Row label="Cittadinanza" value={mdi.acc_cittadinanza} />
             <Row label="Cellulare" value={mdi.acc_cellulare} />
-            <Row label="Email" value={mdi.acc_email} />
+            <Row label="Email" value={[mdi.acc_email, mdi.acc_email_2].filter(Boolean).join(' / ')} />
+            {!mdi.acc_residenza_come_allievo && (
+              <Row label="Residenza" value={`${mdi.acc_residenza_via ?? ''}, ${mdi.acc_residenza_cap ?? ''} ${mdi.acc_residenza_citta ?? ''}`} />
+            )}
           </section>
 
           <section>

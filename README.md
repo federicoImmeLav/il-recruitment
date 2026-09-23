@@ -21,8 +21,8 @@ vecchio portale (composizione classi, azioni scuole, stage, ecc.) non sono inclu
 1. Crea un nuovo progetto su [supabase.com](https://supabase.com) (piano Free).
 2. Apri **SQL Editor** e incolla in ordine il contenuto dei file in `supabase/migrations/`
    (`0001_init_schema.sql`, `0002_rls_policies.sql`, `0003_seed_corsi.sql`, `0004_kiosk_mdi.sql`,
-   `0005_stato_rifiutata.sql`, `0006_google_forms_notifiche.sql`). La `0007_cron_notifiche.sql`
-   va eseguita dopo aver configurato le notifiche (vedi sotto).
+   `0005_stato_rifiutata.sql`, `0006_google_forms_notifiche.sql`, `0008_mdi_anagrafica_innovaplan.sql`).
+   La `0007_cron_notifiche.sql` va eseguita dopo aver configurato le notifiche (vedi sotto).
 3. In **Project Settings → API** copia `Project URL` e `anon public key`.
 
 ### 2. Variabili d'ambiente
@@ -82,6 +82,29 @@ prima dell'Open Day parte un promemoria automatico ai confermati.
 5. In **Impostazioni** sostituisci luogo, indicazioni e contatti fittizi con quelli reali e
    controlla i testi dei messaggi (c'è l'anteprima).
 
+### 6. Export anagrafiche per INNOVAPLAN
+
+La MDI raccoglie i dati del tracciato SIDI **"Alunni e scelte"** (codici fiscali, luogo di nascita,
+cittadinanza, dati del genitore, scuola di provenienza con codice meccanografico). Da
+**MDI → Esporta per INNOVAPLAN** si scarica un CSV con le stesse 69 colonne e lo stesso formato
+dell'export SIDI (separatore `;`, UTF-8, CRLF), da importare su INNOVAPLAN; poi si segnano le MDI
+come esportate (passo manuale).
+
+Prima del primo export, in **Impostazioni → Dati per INNOVAPLAN** inserisci il **codice
+ministeriale di ogni corso** (colonna IND_MINISTERIALE, es. A199) e verifica codice sede (MICF065007)
+e classificazione (R3).
+
+Scelte da verificare al primo import di prova: cittadinanza e stato estero sono esportati come
+**nome del paese** (i codici SIDI non coincidono con quelli ISTAT); le colonne proprie delle domande
+ministeriali (COD_ALUNNO, PROG/STATO/TIPO_DOMANDA, UTENZA) restano vuote.
+
+Elenchi di riferimento (comuni ISTAT con codice catastale, paesi esteri, scuole medie della
+Lombardia dall'anagrafe MIUR) in `src/data/`, rigenerabili con
+`node scripts/genera-dati-riferimento.mjs` (aggiornare `ANNO_MIUR` ogni anno).
+
+> ⚠️ La cartella `risorse/` (file d'esempio con dati reali) è esclusa da git: non spostare mai
+> file con dati personali fuori da lì.
+
 ## Comandi
 
 | Comando | Descrizione |
@@ -90,6 +113,7 @@ prima dell'Open Day parte un promemoria automatico ai confermati.
 | `npm run demo` | Server di sviluppo in **modalità demo**: dati finti in memoria, login saltato, nessun Supabase necessario (solo locale, mai in build di produzione) |
 | `npm run build` | Type-check + build di produzione |
 | `npm run lint` | Lint con oxlint |
+| `npm test` | Test (Vitest): codice fiscale, export INNOVAPLAN |
 | `npm run preview` | Serve la build di produzione in locale |
 
 ## Struttura
