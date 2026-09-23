@@ -14,6 +14,8 @@ vecchio portale (composizione classi, azioni scuole, stage, ecc.) non sono inclu
 
 ## Setup
 
+> **Vuoi solo vedere l'app?** `npm install && npm run demo` → apri http://localhost:5173/staff/dashboard. Parte con dati di esempio fittizi e un utente staff simulato, senza Supabase. Le modifiche restano solo in memoria e si perdono al reload.
+
 ### 1. Progetto Supabase
 
 1. Crea un nuovo progetto su [supabase.com](https://supabase.com) (piano Free).
@@ -48,6 +50,7 @@ L'account viene collegato automaticamente a un profilo staff (tabella `profiles`
 | Comando | Descrizione |
 |---|---|
 | `npm run dev` | Avvia il server di sviluppo |
+| `npm run demo` | Server di sviluppo in **modalità demo**: dati finti in memoria, login saltato, nessun Supabase necessario (solo locale, mai in build di produzione) |
 | `npm run build` | Type-check + build di produzione |
 | `npm run lint` | Lint con oxlint |
 | `npm run preview` | Serve la build di produzione in locale |
