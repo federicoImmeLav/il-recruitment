@@ -3,8 +3,11 @@ import { NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '../../features/auth/AuthProvider'
 import { useSede } from '../../features/sedi/SedeProvider'
 import { SedeSelector } from '../../features/sedi/SedeSelector'
+import { azzeraDatiDemo } from '../../lib/demo/mockSupabase'
+import { isDemoMode } from '../../lib/supabaseClient'
 import { Icon } from '../ui/Icon'
-import { IconButton } from '../ui/Button'
+import { Button, IconButton } from '../ui/Button'
+import { Dialog } from '../ui/Dialog'
 
 interface NavItem {
   to: string
@@ -96,8 +99,33 @@ function BottomNavBar() {
   )
 }
 
-/** Menu account della top app bar (compact): nome utente ed "Esci". */
-function AccountMenu({ nome, onEsci }: { nome?: string; onEsci: () => void }) {
+/** Solo in demo: conferma prima di cancellare i dati salvati nel browser e ripartire da quelli di esempio. */
+function AzzeraDemoDialog({ onClose }: { onClose: () => void }) {
+  return (
+    <Dialog
+      title="Azzerare i dati demo?"
+      onClose={onClose}
+      footer={
+        <>
+          <Button variant="text" onClick={onClose}>
+            Annulla
+          </Button>
+          <Button variant="danger" onClick={azzeraDatiDemo}>
+            Azzera
+          </Button>
+        </>
+      }
+    >
+      <p className="text-body-m text-on-surface-variant">
+        Open Day, iscrizioni e MDI creati o modificati nella demo vengono cancellati in tutte le schede e si torna ai
+        dati di esempio.
+      </p>
+    </Dialog>
+  )
+}
+
+/** Menu account della top app bar (compact): nome utente, "Azzera dati demo" (solo demo) ed "Esci". */
+function AccountMenu({ nome, onEsci, onAzzeraDemo }: { nome?: string; onEsci: () => void; onAzzeraDemo: () => void }) {
   const [aperto, setAperto] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
@@ -123,6 +151,20 @@ function AccountMenu({ nome, onEsci }: { nome?: string; onEsci: () => void }) {
           className="absolute right-0 top-full z-40 mt-1 min-w-56 rounded-xs bg-surface-container py-2 shadow-elev-2"
         >
           {nome && <p className="px-3 py-2 text-body-m text-on-surface-variant">{nome}</p>}
+          {isDemoMode && (
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setAperto(false)
+                onAzzeraDemo()
+              }}
+              className="state-layer flex h-12 w-full items-center gap-3 px-3 text-label-l text-on-surface"
+            >
+              <Icon name="restart_alt" className="text-on-surface-variant" />
+              Azzera dati demo
+            </button>
+          )}
           <button
             type="button"
             role="menuitem"
@@ -141,6 +183,7 @@ function AccountMenu({ nome, onEsci }: { nome?: string; onEsci: () => void }) {
 export function StaffLayout() {
   const { profile, signOut } = useAuth()
   const esci = () => void signOut()
+  const [azzeraDemo, setAzzeraDemo] = useState(false)
 
   return (
     <div className="min-h-dvh bg-surface medium:flex">
@@ -161,6 +204,7 @@ export function StaffLayout() {
           <p className="hidden min-w-0 flex-1 truncate text-body-m text-on-surface-variant expanded:block">
             {profile?.nome_completo}
           </p>
+          {isDemoMode && <IconButton icon="restart_alt" label="Azzera dati demo" onClick={() => setAzzeraDemo(true)} />}
           <IconButton icon="logout" label="Esci" onClick={esci} />
         </div>
       </nav>
@@ -170,7 +214,7 @@ export function StaffLayout() {
         <header className="sticky top-0 z-20 flex h-16 items-center gap-2 bg-surface px-4 medium:hidden print:hidden">
           <img src="/logo-il.jpg" alt="" className="h-10 w-auto mix-blend-multiply" />
           <p className="min-w-0 flex-1 truncate text-title-l text-on-surface">Recruitment</p>
-          <AccountMenu nome={profile?.nome_completo} onEsci={esci} />
+          <AccountMenu nome={profile?.nome_completo} onEsci={esci} onAzzeraDemo={() => setAzzeraDemo(true)} />
         </header>
 
         <main className="mx-auto max-w-[1440px] px-4 pb-28 pt-2 medium:px-6 medium:py-6 medium:pb-8">
@@ -180,6 +224,7 @@ export function StaffLayout() {
       </div>
 
       <BottomNavBar />
+      {azzeraDemo && <AzzeraDemoDialog onClose={() => setAzzeraDemo(false)} />}
     </div>
   )
 }

@@ -1,13 +1,15 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '../types/database.types'
-import { mockSupabase } from './demo/mockSupabase'
+import { attivaPersistenzaDemo, mockSupabase } from './demo/mockSupabase'
 
 /**
- * Modalita' demo (`npm run demo`): client finto in memoria con dati di esempio e
- * sessione staff simulata, per vedere la UI senza un progetto Supabase. Attiva solo
- * col dev server (import.meta.env.DEV), mai in una build di produzione.
+ * Modalita' demo (`npm run demo`): client finto con dati di esempio salvati nel
+ * localStorage e sessione staff simulata, per vedere la UI senza un progetto Supabase.
+ * Attiva solo col dev server (import.meta.env.DEV), mai in una build di produzione.
  */
 export const isDemoMode = import.meta.env.DEV && import.meta.env.MODE === 'demo'
+
+if (isDemoMode) attivaPersistenzaDemo()
 
 function createRealClient() {
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL

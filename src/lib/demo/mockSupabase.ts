@@ -1,6 +1,8 @@
 // Client Supabase finto, in memoria, per la modalita' demo (`npm run demo`).
 // Serve solo a vedere/provare la UI senza un progetto Supabase reale: dati di
-// esempio fittizi, sessione staff finta, nessuna rete. Si perde tutto al reload.
+// esempio fittizi, sessione staff finta, nessuna rete. I dati restano nel
+// localStorage del browser (sopravvivono al reload e sono condivisi tra le schede,
+// es. kiosk aperto in una nuova scheda) finche' non si usa "Azzera dati demo".
 // Implementa solo il sottoinsieme di query builder usato dagli hook in src/hooks.
 
 import type {
@@ -446,6 +448,57 @@ const db: Record<string, Row[]> = {
   google_form_import_log: google_form_import_log as unknown as Row[],
 }
 
+// --- Persistenza nel browser -----------------------------------------------------
+
+const STORAGE_KEY = 'il-recruitment-demo-db-v1'
+
+/** Sostituisce il seed con i dati salvati, se ci sono (il seed resta come fallback). */
+function caricaDb() {
+  try {
+    const salvato = localStorage.getItem(STORAGE_KEY)
+    if (salvato) Object.assign(db, JSON.parse(salvato) as Record<string, Row[]>)
+  } catch {
+    // Storage non disponibile o dati corrotti: si usa il seed.
+  }
+}
+
+function salvaDb() {
+  if (!persistenzaAttiva) return
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(db))
+  } catch {
+    // Storage pieno o bloccato: la demo continua in memoria.
+  }
+}
+
+/** Torna ai dati di esempio iniziali (pulsante "Azzera dati demo"). */
+export function azzeraDatiDemo() {
+  try {
+    localStorage.removeItem(STORAGE_KEY)
+  } catch {
+    // ignorato: il reload riparte comunque dal seed se lo storage non c'e'
+  }
+  location.reload()
+}
+
+let persistenzaAttiva = false
+
+/**
+ * Chiamata da supabaseClient solo in modalita' demo: il modulo viene importato
+ * anche nelle build normali e li' non deve toccare il localStorage.
+ */
+export function attivaPersistenzaDemo() {
+  if (persistenzaAttiva) return
+  persistenzaAttiva = true
+  caricaDb()
+  salvaDb()
+  // Un'altra scheda (es. il kiosk) ha scritto: si riallinea la copia in memoria.
+  // TanStack Query rilegge al ritorno sulla scheda (refetchOnWindowFocus).
+  window.addEventListener('storage', (e) => {
+    if (e.key === STORAGE_KEY) caricaDb()
+  })
+}
+
 // --- Query builder ------------------------------------------------------------
 
 type Result = { data: unknown; error: { message: string } | null }
@@ -534,6 +587,7 @@ class MockQuery implements PromiseLike<Result> {
         for (const r of rows) Object.assign(r, this.op.patch, { updated_at: now() })
       }
     }
+    if (this.op.kind !== 'select') salvaDb()
 
     if (this.sort) {
       const { col, asc } = this.sort
@@ -648,6 +702,8 @@ function iscrittiRicercabili(sedeId: unknown) {
     return ok ? [{ b, od }] : []
   })
 }
+
+const RPC_CHE_SCRIVONO = new Set(['create_booking', 'decidi_iscrizione', 'imposta_corsi_open_day'])
 
 async function rpc(fn: string, args: Row = {}): Promise<Result> {
   await new Promise((r) => setTimeout(r, 150))
@@ -789,7 +845,11 @@ const fakeChannel = {
 
 export const mockSupabase = {
   from: (table: string) => new MockQuery(table),
-  rpc,
+  rpc: async (fn: string, args?: Row) => {
+    const res = await rpc(fn, args)
+    if (RPC_CHE_SCRIVONO.has(fn)) salvaDb()
+    return res
+  },
   auth: {
     getSession: async () => ({ data: { session: demoSession }, error: null }),
     onAuthStateChange: () => ({ data: { subscription: { unsubscribe() {} } } }),
@@ -798,5 +858,11 @@ export const mockSupabase = {
   },
   channel: () => fakeChannel,
   removeChannel: async () => 'ok',
-  functions: { invoke: invokeFunction },
+  functions: {
+    invoke: async (name: string) => {
+      const res = await invokeFunction(name)
+      salvaDb()
+      return res
+    },
+  },
 }
