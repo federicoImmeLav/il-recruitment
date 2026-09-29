@@ -3,12 +3,16 @@
  *
  * Ad ogni risposta inviata, manda i dati alla Edge Function
  * `google-forms-webhook`, che crea l'iscrizione "da approvare".
+ * Un modulo (e una copia di questo script) per città.
  * Istruzioni complete: integrations/google-forms/README.md
  *
  * NESSUN SEGRETO IN QUESTO FILE: URL e segreto vanno in
  * Impostazioni progetto -> Proprietà script:
  *   WEBHOOK_URL     https://<ref>.supabase.co/functions/v1/google-forms-webhook
- *   WEBHOOK_SECRET  lo stesso valore del secret GOOGLE_FORMS_SECRET su Supabase
+ *   WEBHOOK_SECRET  lo stesso valore del secret della città su Supabase
+ *                   (GOOGLE_FORMS_SECRET_TORINO, ...; GOOGLE_FORMS_SECRET per Milano)
+ *   CITTA           identificativo della città nell'app (milano, torino); se
+ *                   manca vale milano
  */
 
 /**
@@ -64,6 +68,7 @@ function inviaRisposta_(risposta) {
   var props = PropertiesService.getScriptProperties();
   var url = props.getProperty('WEBHOOK_URL');
   var secret = props.getProperty('WEBHOOK_SECRET');
+  var citta = props.getProperty('CITTA') || 'milano';
   if (!url || !secret) throw new Error('Imposta WEBHOOK_URL e WEBHOOK_SECRET nelle Proprietà script');
 
   var payload = {
@@ -85,7 +90,7 @@ function inviaRisposta_(risposta) {
       var res = UrlFetchApp.fetch(url, {
         method: 'post',
         contentType: 'application/json',
-        headers: { 'x-webhook-secret': secret },
+        headers: { 'x-webhook-secret': secret, 'x-citta': citta },
         payload: JSON.stringify(payload),
         muteHttpExceptions: true,
       });

@@ -1,15 +1,34 @@
 import { useEffect, useRef, useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '../../features/auth/AuthProvider'
+import { useSede } from '../../features/sedi/SedeProvider'
+import { SedeSelector } from '../../features/sedi/SedeSelector'
 import { Icon } from '../ui/Icon'
 import { IconButton } from '../ui/Button'
 
-const NAV_ITEMS = [
-  { to: '/staff/dashboard', label: 'Monitoraggio', icon: 'monitoring' },
-  { to: '/staff/open-days', label: 'Open Day', icon: 'event' },
-  { to: '/staff/mdi', label: 'MDI', icon: 'assignment' },
-  { to: '/staff/impostazioni', label: 'Impostazioni', icon: 'settings' },
-]
+interface NavItem {
+  to: string
+  label: string
+  icon: string
+}
+
+/**
+ * Voci per ruolo: "Confronto" solo per chi vede più sedi, "Admin" solo per gli
+ * amministratori e solo in rail/drawer (la navigation bar M3 regge al massimo
+ * 5 voci; su smartphone l'admin ci arriva da Impostazioni).
+ */
+function useNavItems() {
+  const { multiSede, isAdmin } = useSede()
+  const principali: NavItem[] = [
+    { to: '/staff/dashboard', label: 'Monitoraggio', icon: 'monitoring' },
+    { to: '/staff/open-days', label: 'Open Day', icon: 'event' },
+    { to: '/staff/mdi', label: 'MDI', icon: 'assignment' },
+    ...(multiSede ? [{ to: '/staff/confronto', label: 'Confronto', icon: 'leaderboard' }] : []),
+    { to: '/staff/impostazioni', label: 'Impostazioni', icon: 'settings' },
+  ]
+  const laterali = isAdmin ? [...principali, { to: '/staff/admin', label: 'Admin', icon: 'admin_panel_settings' }] : principali
+  return { principali, laterali }
+}
 
 /*
  * Navigazione adattiva M3 per classe di finestra:
@@ -20,9 +39,10 @@ const NAV_ITEMS = [
 
 /** Voce di rail/drawer: su medium icona con pillola + etichetta sotto, su expanded pillola larga. */
 function SideNavLinks() {
+  const { laterali } = useNavItems()
   return (
     <div className="flex flex-col gap-3 expanded:gap-0">
-      {NAV_ITEMS.map((item) => (
+      {laterali.map((item) => (
         <NavLink key={item.to} to={item.to} className="group flex flex-col items-center gap-1 expanded:block">
           {({ isActive }) => (
             <>
@@ -48,12 +68,13 @@ function SideNavLinks() {
 }
 
 function BottomNavBar() {
+  const { principali } = useNavItems()
   return (
     <nav
       aria-label="Navigazione principale"
       className="fixed inset-x-0 bottom-0 z-30 flex h-20 bg-surface-container pb-[env(safe-area-inset-bottom)] medium:hidden print:hidden"
     >
-      {NAV_ITEMS.map((item) => (
+      {principali.map((item) => (
         <NavLink key={item.to} to={item.to} className="flex flex-1 flex-col items-center justify-center gap-1">
           {({ isActive }) => (
             <>
@@ -153,6 +174,7 @@ export function StaffLayout() {
         </header>
 
         <main className="mx-auto max-w-[1440px] px-4 pb-28 pt-2 medium:px-6 medium:py-6 medium:pb-8">
+          <SedeSelector />
           <Outlet />
         </main>
       </div>

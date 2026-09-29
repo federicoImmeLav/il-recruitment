@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabaseClient'
 import type { KioskDatiIscritto, KioskIscritto, Mdi } from '../types/database.types'
 
 interface MdiFilters {
+  sedeId?: string
   openDayId?: string
   soloDaEsportare?: boolean
   ricerca?: string
@@ -13,6 +14,7 @@ export function useMdiList(filters: MdiFilters = {}) {
     queryKey: ['mdi', filters],
     queryFn: async () => {
       let query = supabase.from('mdi').select('*').order('created_at', { ascending: false })
+      if (filters.sedeId) query = query.eq('sede_id', filters.sedeId)
       if (filters.openDayId) query = query.eq('open_day_id', filters.openDayId)
       if (filters.soloDaEsportare) query = query.eq('esportato_innovaplan', false)
       if (filters.ricerca) {
@@ -61,15 +63,15 @@ export function useCreateMdi() {
   })
 }
 
-/** Ricerca per cognome o nome tra gli iscritti agli Open Day dell'edizione attiva (RPC pubblica, 0009). */
-export function useKioskCercaIscritti(query: string) {
+/** Ricerca per cognome o nome tra gli iscritti alle edizioni attive della sede (RPC pubblica, 0011). */
+export function useKioskCercaIscritti(sedeId: string, query: string) {
   const q = query.trim()
   return useQuery({
-    queryKey: ['kiosk_cerca_iscritti', q.toLowerCase()],
+    queryKey: ['kiosk_cerca_iscritti', sedeId, q.toLowerCase()],
     enabled: q.length >= 2,
     staleTime: 30_000,
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('kiosk_cerca_iscritti', { p_query: q })
+      const { data, error } = await supabase.rpc('kiosk_cerca_iscritti', { p_sede_id: sedeId, p_query: q })
       if (error) throw error
       return (data ?? []) as KioskIscritto[]
     },
@@ -77,8 +79,8 @@ export function useKioskCercaIscritti(query: string) {
 }
 
 /** Dati di precompilazione di un iscritto scelto dalla ricerca del kiosk. */
-export async function fetchKioskDatiIscritto(bookingId: string) {
-  const { data, error } = await supabase.rpc('kiosk_dati_iscritto', { p_booking_id: bookingId })
+export async function fetchKioskDatiIscritto(sedeId: string, bookingId: string) {
+  const { data, error } = await supabase.rpc('kiosk_dati_iscritto', { p_sede_id: sedeId, p_booking_id: bookingId })
   if (error) throw error
   const rows = (data ?? []) as KioskDatiIscritto[]
   return rows[0] ?? null

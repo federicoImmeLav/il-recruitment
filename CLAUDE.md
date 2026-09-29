@@ -24,6 +24,21 @@ riepilogo). Scelta dell'utente: **gruppo = indirizzo** (`bookings.corso_id`); sp
 qualcuno di gruppo cambia il suo indirizzo, `corso_iniziale_id` (trigger) conserva quello
 dell'iscrizione per vedere chi ha cambiato idea. Nessun export INNOVAPLAN dei gruppi.
 
+**Multi-città / multi-sede** (0011, scelte dell'utente): un'unica app per Milano (1 sede) e
+Torino (3 sedi con Open Day, date e indirizzi propri). `citta` 1─n `sedi`; **corsi ed edizioni
+per sede**; `sede_id` denormalizzato su open_days/bookings/mdi/notifiche e **sempre derivato
+da trigger** (mai fidarsi del client). Accessi: `profiles.is_admin` (tutto), `staff_ambiti` per
+città (referente) o per sede (operatore, anche più sedi); staff senza ambiti non vede nulla.
+Config per sede (luogo, contatti, mittente email, luogo firma MDI, codice meccanografico,
+testi); i testi in `impostazioni` sono il template comune (solo admin), la sede può
+sovrascriverli. Kiosk per sede (`/mdi/kiosk/sede/<slug>`). MDI: 1ª preferenza della sede,
+2ª/3ª anche di altre sedi della **stessa città**, ma la MDI resta visibile **solo alla sede
+di compilazione**. Export INNOVAPLAN sempre per una sede; II/III scelta scuola restano vuote.
+Un Google Modulo **per città** (header `x-citta`, secret `GOOGLE_FORMS_SECRET_<SLUG>`).
+Dashboard comparativa `/staff/confronto` (RPC `statistiche_sedi`), admin `/staff/admin`.
+Frontend: `useSede()` (`src/features/sedi/SedeProvider.tsx`) dà la sede selezionata
+(`undefined` = tutte le mie sedi); gli hook filtrano per `sedeId`, le RLS fanno il resto.
+
 ## Stack
 
 - Vite + React 19 + TypeScript, no CSS-in-JS: Tailwind CSS v4 (plugin `@tailwindcss/vite`,
@@ -33,8 +48,8 @@ dell'iscrizione per vedere chi ha cambiato idea. Nessun export INNOVAPLAN dei gr
   (0001 schema, 0002 RLS/RPC, 0003 seed corsi, 0004 kiosk MDI, 0005–0007 import Google
   Moduli + approvazione + coda notifiche + pg_cron, 0008 anagrafica MDI per INNOVAPLAN, 0009 ricerca kiosk
   estesa a tutti gli iscritti dell'edizione attiva, scelta esplicita dell'utente, 0010 indirizzi per Open
-  Day + corso iniziale per i gruppi d'interesse) — **fonte di verità**, da incollare in
-  ordine nello SQL Editor del progetto Supabase.
+  Day + corso iniziale per i gruppi d'interesse, 0011 multi-città/multi-sede) — **fonte di verità**, da
+  incollare in ordine nello SQL Editor del progetto Supabase.
 - React Router v6, TanStack Query, React Hook Form (niente Zod: validazione via regole
   `register()` di RHF, tenuta volutamente semplice).
 - Lint: `oxlint` (non ESLint). `npm run build` fa anche il type-check (`tsc -b`). Test: Vitest
@@ -50,8 +65,10 @@ Il repo è **pubblico**: la protezione dei dati (MDI, iscrizioni con dati di min
 dipende dal codice essere segreto ma **solo** dalle RLS in `0002_rls_policies.sql`.
 Regole da rispettare in ogni modifica futura allo schema:
 - Mai grant pubblici ampi: `anon` ha solo lettura colonne non sensibili su `open_days`/
-  `corsi` e insert su `mdi`; nessun insert diretto su `bookings` (solo via RPC
+  `corsi`/`sedi`/`citta` e insert su `mdi`; nessun insert diretto su `bookings` (solo via RPC
   `create_booking`, che applica capacità/waitlist atomicamente).
+- Policy delle tabelle operative: `sede_id = any ((select public.sedi_accessibili())::uuid[])`
+  (il cast è obbligatorio: senza, Postgres tratta la sottoquery come insieme di righe).
 - `service_role` key: mai nel codice, mai in `.env.local` committato (è gitignored).
 - Le pagine `/staff/*` sono protette sia da `ProtectedRoute` (router) sia dalle RLS
   lato DB — non fidarsi mai della sola UI per nascondere dati/azioni di gestione.
@@ -84,8 +101,9 @@ account staff, deploy). Struttura cartelle in `src/` spiegata lì.
   PageHeader…); navigazione staff adattiva (navigation bar < 600dp, rail, drawer ≥ 1200dp).
   Icone Material Symbols caricate in `index.html` col sottoinsieme `icon_names`: un'icona
   nuova va aggiunta lì (il test `icone.test.ts` lo verifica).
-- Ogni nuovo modulo Supabase (tabelle/RLS) segue il pattern di `0002_rls_policies.sql`:
-  helper `is_staff()`, `TO authenticated`/`TO anon` espliciti, mai `auth.role()`.
+- Ogni nuovo modulo Supabase (tabelle/RLS) segue il pattern di `0002_rls_policies.sql` e
+  `0011_multisede.sql`: dati operativi con `sede_id` + policy su `sedi_accessibili()`, config
+  globale solo `is_admin()`, `TO authenticated`/`TO anon` espliciti, mai `auth.role()`.
 - Per ogni nuovo strumento, segnalare sempre l'eventuale necessità di export dati verso
   INNOVAPLAN; è l'utente a confermare caso per caso se serve davvero.
 

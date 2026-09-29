@@ -2,13 +2,14 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabaseClient'
 import type { OpenDay, OpenDayPublic } from '../types/database.types'
 
-/** Elenco completo, solo staff (RLS: is_staff()). */
-export function useOpenDays(edizioneId?: string) {
+/** Elenco staff (RLS: solo le sedi dell'utente), filtrabile per edizione o sede. */
+export function useOpenDays({ edizioneId, sedeId }: { edizioneId?: string; sedeId?: string } = {}) {
   return useQuery({
-    queryKey: ['open_days', edizioneId ?? 'all'],
+    queryKey: ['open_days', edizioneId ?? 'all', sedeId ?? 'all'],
     queryFn: async () => {
       let query = supabase.from('open_days').select('*').order('data', { ascending: true })
       if (edizioneId) query = query.eq('edizione_id', edizioneId)
+      if (sedeId) query = query.eq('sede_id', sedeId)
       const { data, error } = await query
       if (error) throw error
       return data as OpenDay[]
@@ -29,15 +30,19 @@ export function useOpenDay(openDayId: string | undefined) {
   })
 }
 
-/** Solo gli open day aperti, colonne pubbliche — usato dal form di registrazione (anon). */
-export function useOpenDaysPublic() {
+const COLONNE_PUBBLICHE = 'id, edizione_id, sede_id, data, ora, posti_max, tipo, stato'
+
+/** Solo gli open day aperti di una sede, colonne pubbliche — usato dal kiosk (anon). */
+export function useOpenDaysPublic(sedeId: string | undefined) {
   return useQuery({
-    queryKey: ['open_days_public'],
+    queryKey: ['open_days_public', sedeId],
+    enabled: !!sedeId,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('open_days')
-        .select('id, edizione_id, data, ora, posti_max, tipo, stato')
+        .select(COLONNE_PUBBLICHE)
         .eq('stato', 'aperto')
+        .eq('sede_id', sedeId!)
         .order('data', { ascending: true })
       if (error) throw error
       return data as OpenDayPublic[]
@@ -52,7 +57,7 @@ export function useOpenDayPublic(openDayId: string | undefined) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('open_days')
-        .select('id, edizione_id, data, ora, posti_max, tipo, stato')
+        .select(COLONNE_PUBBLICHE)
         .eq('id', openDayId!)
         .single()
       if (error) throw error

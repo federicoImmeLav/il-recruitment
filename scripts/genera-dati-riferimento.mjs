@@ -1,15 +1,19 @@
 // Genera i dati di riferimento PUBBLICI usati dalla MDI e dall'export INNOVAPLAN:
 //   src/data/comuni.json                 [nome, sigla provincia, codice catastale]   (ISTAT)
 //   src/data/paesi.json                  [nome, codice catastale estero "Zxxx"]      (ISTAT via HL7 Italia)
-//   src/data/scuole-medie-lombardia.json [codice meccanografico, denominazione, comune]  (MIUR open data)
+//   src/data/scuole-medie-<regione>.json [codice meccanografico, denominazione, comune]  (MIUR open data)
+//     una per ogni regione in REGIONI (le regioni delle città in cui ci sono sedi)
 //
-// Uso:  node scripts/genera-dati-riferimento.mjs
+// Uso:  node scripts/genera-dati-riferimento.mjs            (tutto)
+//       node scripts/genera-dati-riferimento.mjs --scuole   (solo le scuole medie)
 // Da rilanciare quando cambiano i comuni o esce l'anagrafe scuole di un nuovo anno
 // (aggiornare ANNO_MIUR). Nessun dato personale: solo elenchi pubblici.
 
 import { mkdir, writeFile } from 'node:fs/promises'
 
 const ANNO_MIUR = '20262720260901'
+// Nuova città in un'altra regione: aggiungerla qui e in src/lib/riferimenti.ts (SCUOLE_PER_REGIONE).
+const REGIONI = ['LOMBARDIA', 'PIEMONTE']
 const FONTI = {
   comuni: 'https://www.istat.it/storage/codici-unita-amministrative/Elenco-comuni-italiani.csv',
   paesi: 'https://www.hl7.it/fhir/base/CodeSystem-istat-unitaAmministrativeTerritorialiEstere.json',
@@ -83,24 +87,30 @@ async function paesi() {
   return out.sort(perNome)
 }
 
-async function scuoleMedieLombardia() {
-  const righe = [
+let anagrafeScuole
+async function scuoleMedie(regione) {
+  anagrafeScuole ??= [
     ...parseCsv(await scarica(FONTI.scuoleStatali), ','),
     ...parseCsv(await scarica(FONTI.scuolePar), ','),
   ]
   const visti = new Set()
-  return righe
-    .filter((r) => r.REGIONE === 'LOMBARDIA' && r.DESCRIZIONETIPOLOGIAGRADOISTRUZIONESCUOLA.includes('PRIMO GRADO'))
+  return anagrafeScuole
+    .filter((r) => r.REGIONE === regione && r.DESCRIZIONETIPOLOGIAGRADOISTRUZIONESCUOLA.includes('PRIMO GRADO'))
     .filter((r) => !visti.has(r.CODICESCUOLA) && visti.add(r.CODICESCUOLA))
     .map((r) => [r.CODICESCUOLA, r.DENOMINAZIONESCUOLA, titolo(r.DESCRIZIONECOMUNE)])
     .sort((a, b) => a[2].localeCompare(b[2], 'it') || a[1].localeCompare(b[1], 'it'))
 }
 
+const soloScuole = process.argv.includes('--scuole')
 await mkdir(new URL('../src/data/', import.meta.url), { recursive: true })
 for (const [file, genera] of [
-  ['comuni.json', comuni],
-  ['paesi.json', paesi],
-  ['scuole-medie-lombardia.json', scuoleMedieLombardia],
+  ...(soloScuole
+    ? []
+    : [
+        ['comuni.json', comuni],
+        ['paesi.json', paesi],
+      ]),
+  ...REGIONI.map((r) => [`scuole-medie-${r.toLowerCase()}.json`, () => scuoleMedie(r)]),
 ]) {
   const dati = await genera()
   await writeFile(new URL(`../src/data/${file}`, import.meta.url), JSON.stringify(dati) + '\n')

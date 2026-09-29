@@ -6,6 +6,7 @@ import { COLONNE, annoScolasticoIscrizione, avvisiMdi, generaCsv, intestazione, 
 function mdiDiProva(extra: Partial<Mdi> = {}): Mdi {
   return {
     id: 'mdi-1',
+    sede_id: 'sede-1',
     open_day_id: null,
     booking_id: null,
     acc_cognome: 'Rossi',

@@ -31,7 +31,9 @@ come "Open Day non trovato"; dopo aver sistemato l'etichetta, rilancia `reinviaT
 2. Sostituisci il contenuto di `Codice.gs` con quello di `Code.gs` e salva.
 3. **Impostazioni progetto (⚙) → Proprietà script → Aggiungi**:
    - `WEBHOOK_URL` = `https://<ref-progetto>.supabase.co/functions/v1/google-forms-webhook`
-   - `WEBHOOK_SECRET` = lo stesso valore impostato su Supabase come `GOOGLE_FORMS_SECRET`
+   - `WEBHOOK_SECRET` = lo stesso valore impostato su Supabase come segreto della città
+     (`GOOGLE_FORMS_SECRET` per Milano, `GOOGLE_FORMS_SECRET_TORINO` per Torino, …)
+   - `CITTA` = identificativo della città nell'app (`milano`, `torino`); se manca vale `milano`
 4. **Attivatori (⏰) → Aggiungi attivatore**: funzione `onFormSubmit`, origine *Dal modulo*,
    tipo *All'invio del modulo*. Autorizza lo script quando richiesto.
 5. Prova: esegui `provaUltimaRisposta` (menu in alto) e controlla il log; poi fai una
@@ -41,3 +43,19 @@ come "Open Day non trovato"; dopo aver sistemato l'etichetta, rilancia `reinviaT
 
 Il segreto **non va mai scritto in `Code.gs`** (il repository è pubblico): solo nelle
 Proprietà script.
+
+## Più città (un modulo per città)
+
+Ogni città ha il **proprio** Google Modulo con la propria copia di questo script: stesso
+`WEBHOOK_URL`, ma `CITTA` e `WEBHOOK_SECRET` della città. Su Supabase:
+
+```bash
+npx supabase secrets set --project-ref <ref> GOOGLE_FORMS_SECRET_TORINO=<stringa-casuale-lunga>
+```
+
+Le etichette degli Open Day devono essere uniche **nella città** (l'app lo verifica): con
+più sedi nello stesso modulo conviene metterci il nome della sede, es.
+`Torino Centro — Sabato 18 ottobre 2026 — ore 10:00`. Il primo corso scelto viene cercato
+tra quelli della sede dell'Open Day, il secondo anche tra quelli delle altre sedi della
+città. Nel registro "Import Google Moduli" ogni operatore vede solo le risposte dei
+moduli delle proprie città.

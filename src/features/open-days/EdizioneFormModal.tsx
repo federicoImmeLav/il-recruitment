@@ -4,9 +4,12 @@ import { Button } from '../../components/ui/Button'
 import { InputField, SelectField } from '../../components/ui/Field'
 import { useCreateEdizione } from '../../hooks/useEdizioni'
 import type { StatoEdizione } from '../../types/database.types'
+import { useSede } from '../sedi/SedeProvider'
 
 export function EdizioneFormModal({ onClose }: { onClose: () => void }) {
   const createEdizione = useCreateEdizione()
+  const { sedi, sedeId: sedeCorrente, multiSede } = useSede()
+  const [sedeId, setSedeId] = useState(sedeCorrente ?? '')
   const [nome, setNome] = useState('')
   const [anno, setAnno] = useState('')
   const [dataApertura, setDataApertura] = useState('')
@@ -15,6 +18,7 @@ export function EdizioneFormModal({ onClose }: { onClose: () => void }) {
 
   async function handleSubmit() {
     await createEdizione.mutateAsync({
+      sede_id: sedeId,
       nome,
       anno,
       data_apertura: dataApertura || null,
@@ -33,13 +37,24 @@ export function EdizioneFormModal({ onClose }: { onClose: () => void }) {
           <Button variant="text" onClick={onClose}>
             Annulla
           </Button>
-          <Button onClick={() => void handleSubmit()} disabled={!nome || !anno || createEdizione.isPending}>
+          <Button onClick={() => void handleSubmit()} disabled={!sedeId || !nome || !anno || createEdizione.isPending}>
             {createEdizione.isPending ? 'Salvataggio…' : 'Crea edizione'}
           </Button>
         </>
       }
     >
       <div className="space-y-4">
+        {/* Ogni sede ha le proprie edizioni: con una sola sede la scelta e' implicita. */}
+        {multiSede && (
+          <SelectField label="Sede" required value={sedeId} onChange={(e) => setSedeId(e.target.value)}>
+            <option value="">Seleziona…</option>
+            {sedi.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.nome}
+              </option>
+            ))}
+          </SelectField>
+        )}
         <InputField
           label="Nome edizione"
           required

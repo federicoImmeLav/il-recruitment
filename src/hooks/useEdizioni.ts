@@ -2,11 +2,14 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabaseClient'
 import type { Edizione } from '../types/database.types'
 
-export function useEdizioni() {
+/** Edizioni della sede indicata, o di tutte le sedi dell'utente (RLS) se `sedeId` manca. */
+export function useEdizioni(sedeId?: string) {
   return useQuery({
-    queryKey: ['edizioni'],
+    queryKey: ['edizioni', sedeId ?? 'all'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('edizioni').select('*').order('anno', { ascending: false })
+      let query = supabase.from('edizioni').select('*').order('anno', { ascending: false })
+      if (sedeId) query = query.eq('sede_id', sedeId)
+      const { data, error } = await query
       if (error) throw error
       return data as Edizione[]
     },
@@ -16,7 +19,7 @@ export function useEdizioni() {
 export function useCreateEdizione() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async (input: Pick<Edizione, 'nome' | 'anno' | 'data_apertura' | 'data_chiusura' | 'stato'>) => {
+    mutationFn: async (input: Pick<Edizione, 'sede_id' | 'nome' | 'anno' | 'data_apertura' | 'data_chiusura' | 'stato'>) => {
       const { data, error } = await supabase.from('edizioni').insert(input).select().single()
       if (error) throw error
       return data as Edizione

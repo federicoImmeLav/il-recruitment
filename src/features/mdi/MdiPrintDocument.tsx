@@ -3,7 +3,7 @@ import { CANALE_CONOSCENZA_OPTIONS, dicituraCorso } from '../../lib/constants'
 import type { Corso } from '../../types/database.types'
 import { InformativaImmagini, InformativaPrivacy } from './informative'
 import { CONSENSI_FOTO, TITOLARE_FIRMA, testoDichiarazioneSingoloGenitore } from './consensi'
-import { LUOGO_FIRMA, annualitaIscrizione, type MdiFormValues, type SiNo } from './mdiFormTypes'
+import { annualitaIscrizione, type MdiFormValues, type SiNo } from './mdiFormTypes'
 
 // Modulo MDI stampabile per la firma olografa, ricalcato su buildPrint() del
 // vecchio IL_Kiosk_MDI_v5. Visibile solo in stampa (classi `.mdi-print*` in index.css).
@@ -20,11 +20,19 @@ function Campo({ children, className = '' }: { children: ReactNode; className?: 
   return <span className={`mdi-print-campo ${className}`}>{children || ' '}</span>
 }
 
-function Firma({ oggi, label = 'Firma leggibile del genitore (o di chi ne ha la rappresentanza)' }: { oggi: string; label?: string }) {
+function Firma({
+  oggi,
+  luogo,
+  label = 'Firma leggibile del genitore (o di chi ne ha la rappresentanza)',
+}: {
+  oggi: string
+  luogo: string
+  label?: string
+}) {
   return (
     <div className="mdi-print-firma">
       <div>
-        {LUOGO_FIRMA}, il <strong>{oggi}</strong>
+        {luogo}, il <strong>{oggi}</strong>
       </div>
       <div className="mdi-print-firma-linea">
         {label}
@@ -34,7 +42,7 @@ function Firma({ oggi, label = 'Firma leggibile del genitore (o di chi ne ha la 
   )
 }
 
-function FirmaTitolare({ oggi }: { oggi: string }) {
+function FirmaTitolare({ oggi, luogo }: { oggi: string; luogo: string }) {
   return (
     <div className="mdi-print-firma">
       <div className="mdi-print-firma-linea">
@@ -44,7 +52,7 @@ function FirmaTitolare({ oggi }: { oggi: string }) {
         <div />
       </div>
       <div>
-        {LUOGO_FIRMA}, il <strong>{oggi}</strong>
+        {luogo}, il <strong>{oggi}</strong>
       </div>
     </div>
   )
@@ -58,7 +66,11 @@ function SiNoBox({ v }: { v: SiNo }) {
   )
 }
 
-export function MdiPrintDocument({ v, corsi }: { v: MdiFormValues; corsi: Corso[] }) {
+/**
+ * `corsi`: quelli elencati nel modulo (i corsi della sede piu' eventuali preferenze di
+ * altre sedi); `luogoFirma`: "Milano", "Torino"… accanto alle firme.
+ */
+export function MdiPrintDocument({ v, corsi, luogoFirma }: { v: MdiFormValues; corsi: Corso[]; luogoFirma: string }) {
   const oggi = new Date().toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' })
   const acc = `${v.acc_cognome} ${v.acc_nome}`.trim()
   const prefs = [v.corso_pref1_id, v.corso_pref2_id, v.corso_pref3_id]
@@ -167,7 +179,7 @@ export function MdiPrintDocument({ v, corsi }: { v: MdiFormValues; corsi: Corso[
             )
           })}
         </div>
-        <Firma oggi={oggi} />
+        <Firma oggi={oggi} luogo={luogoFirma} />
 
         {/* PAGINA 2 — Informativa privacy + consensi A/B */}
         <div className="mdi-print-pagina">
@@ -179,7 +191,7 @@ export function MdiPrintDocument({ v, corsi }: { v: MdiFormValues; corsi: Corso[
           <div className="mdi-print-testo">
             <InformativaPrivacy />
           </div>
-          <FirmaTitolare oggi={oggi} />
+          <FirmaTitolare oggi={oggi} luogo={luogoFirma} />
           <div className="mdi-print-box">
             Il/la sottoscritto/a <strong>{acc}</strong>, presa visione e ricevuta copia dell'informativa sopra riportata,{' '}
             <strong>esprime il proprio consenso</strong>:
@@ -192,7 +204,7 @@ export function MdiPrintDocument({ v, corsi }: { v: MdiFormValues; corsi: Corso[
             <SiNoBox v={v.consenso_privacy_b} /> al trattamento dei dati personali per le finalità di cui alla lettera{' '}
             <strong>B)</strong>
           </div>
-          <Firma oggi={oggi} />
+          <Firma oggi={oggi} luogo={luogoFirma} />
         </div>
 
         {/* PAGINA 3 — Informativa immagini + autorizzazioni + dichiarazione singolo genitore */}
@@ -207,7 +219,7 @@ export function MdiPrintDocument({ v, corsi }: { v: MdiFormValues; corsi: Corso[
           <div className="mdi-print-testo">
             <InformativaImmagini />
           </div>
-          <FirmaTitolare oggi={oggi} />
+          <FirmaTitolare oggi={oggi} luogo={luogoFirma} />
           <div className="mdi-print-box">
             <div className="mdi-print-box-titolo">Autorizzazione per la pubblicazione di fotografie e videoriprese</div>
             Il/la sottoscritto/a <strong>{acc}</strong>, preso atto dell'informativa ricevuta ai sensi dell'art. 13 del Reg.
@@ -220,7 +232,7 @@ export function MdiPrintDocument({ v, corsi }: { v: MdiFormValues; corsi: Corso[
               ))}
             </div>
           </div>
-          <Firma oggi={oggi} />
+          <Firma oggi={oggi} luogo={luogoFirma} />
 
           {v.acc_qualita === 'genitore' && (
             <div className="mdi-print-box">
@@ -228,7 +240,7 @@ export function MdiPrintDocument({ v, corsi }: { v: MdiFormValues; corsi: Corso[
               <br />
               <br />
               {testoDichiarazioneSingoloGenitore(acc)}
-              <Firma oggi={oggi} label="Firma leggibile del genitore" />
+              <Firma oggi={oggi} luogo={luogoFirma} label="Firma leggibile del genitore" />
             </div>
           )}
         </div>

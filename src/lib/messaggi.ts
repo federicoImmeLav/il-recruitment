@@ -1,6 +1,6 @@
-import type { Impostazioni, OpenDay } from '../types/database.types'
+import type { OpenDay, Sede } from '../types/database.types'
 
-// Specchio lato client di public.componi_messaggio() (0006_google_forms_notifiche.sql):
+// Specchio lato client di public.componi_messaggio() (0011_multisede.sql):
 // usato per l'anteprima dei testi nella pagina Impostazioni e dal mock demo.
 // I messaggi veri vengono sempre composti dal database.
 
@@ -12,7 +12,7 @@ export function componiMessaggio(
   testo: string,
   booking: { nome: string; cognome: string },
   openDay: Pick<OpenDay, 'data' | 'ora' | 'luogo_override'>,
-  imp: Pick<Impostazioni, 'luogo_predefinito' | 'indicazioni_predefinite' | 'contatti'>,
+  sede: Pick<Sede, 'luogo' | 'indicazioni' | 'contatti'>,
   motivo?: string | null,
 ) {
   const [y, m, d] = openDay.data.split('-').map(Number)
@@ -23,10 +23,10 @@ export function componiMessaggio(
     '{cognome}': booking.cognome,
     '{data}': `${giorno} ${String(d).padStart(2, '0')}/${String(m).padStart(2, '0')}/${y}`,
     '{ora}': openDay.ora.slice(0, 5),
-    '{luogo}': override || imp.luogo_predefinito,
-    '{indicazioni}': override ? '' : imp.indicazioni_predefinite,
+    '{luogo}': override || sede.luogo,
+    '{indicazioni}': override ? '' : sede.indicazioni,
     '{motivo}': motivo?.trim() ?? '',
-    '{contatti}': imp.contatti,
+    '{contatti}': sede.contatti,
   }
   return Object.entries(valori)
     .reduce((t, [k, v]) => t.split(k).join(v), testo)

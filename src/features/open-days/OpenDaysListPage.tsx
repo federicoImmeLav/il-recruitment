@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Card } from '../../components/ui/Card'
-import { Button, Fab } from '../../components/ui/Button'
+import { Button, Fab, IconButton } from '../../components/ui/Button'
 import { Badge, type BadgeColor } from '../../components/ui/Badge'
 import { ChipSet, FilterChip } from '../../components/ui/Chip'
 import { Icon } from '../../components/ui/Icon'
@@ -10,6 +10,7 @@ import { useEdizioni } from '../../hooks/useEdizioni'
 import { useOpenDays } from '../../hooks/useOpenDays'
 import { useCorsi } from '../../hooks/useCorsi'
 import { useOpenDayCorsiTutti } from '../../hooks/useOpenDayCorsi'
+import { useSede } from '../sedi/SedeProvider'
 import { EdizioneFormModal } from './EdizioneFormModal'
 import { OpenDayFormModal } from './OpenDayFormModal'
 import type { OpenDay, StatoOpenDay } from '../../types/database.types'
@@ -27,13 +28,19 @@ const STATO_LABEL: Record<StatoOpenDay, string> = {
 }
 
 export function OpenDaysListPage() {
-  const { data: edizioni, isLoading: loadingEdizioni, error: edizioniError } = useEdizioni()
+  const { sedeId, sede, multiSede, nomeSede } = useSede()
+  const { data: edizioni, isLoading: loadingEdizioni, error: edizioniError } = useEdizioni(sedeId)
   const [edizioneId, setEdizioneId] = useState<string | undefined>(undefined)
   const [showEdizioneModal, setShowEdizioneModal] = useState(false)
   const [openDayModal, setOpenDayModal] = useState<'new' | OpenDay | null>(null)
 
-  const activeEdizioneId = edizioneId ?? edizioni?.[0]?.id
-  const { data: openDays, isLoading: loadingOpenDays, error: openDaysError } = useOpenDays(activeEdizioneId)
+  // Scelta dell'utente se ancora valida (cambiando sede puo' non esserlo), altrimenti l'edizione attiva.
+  const activeEdizione =
+    edizioni?.find((e) => e.id === edizioneId) ?? edizioni?.find((e) => e.stato === 'attiva') ?? edizioni?.[0]
+  const activeEdizioneId = activeEdizione?.id
+  // Con "tutte le sedi" le etichette dicono di quale sede e' ogni edizione / Open Day.
+  const mostraSede = multiSede && !sedeId
+  const { data: openDays, isLoading: loadingOpenDays, error: openDaysError } = useOpenDays({ edizioneId: activeEdizioneId })
   const { data: corsi } = useCorsi()
   const { data: openDayCorsi } = useOpenDayCorsiTutti()
   const indirizziDi = (id: string) =>
@@ -45,9 +52,24 @@ export function OpenDaysListPage() {
         title="Open Day"
         subtitle="Edizioni ed eventi di orientamento"
         actions={
-          <Button variant="outlined" icon="add" onClick={() => setShowEdizioneModal(true)}>
-            Nuova edizione
-          </Button>
+          <>
+            {/* Link fisso per il tablet della sede: mostra gli Open Day del giorno e cerca solo tra i suoi iscritti. */}
+            {sede && (
+              <Button
+                variant="text"
+                icon="assignment"
+                trailingIcon="open_in_new"
+                href={`/mdi/kiosk/sede/${sede.slug}`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                Kiosk MDI della sede
+              </Button>
+            )}
+            <Button variant="outlined" icon="add" onClick={() => setShowEdizioneModal(true)}>
+              Nuova edizione
+            </Button>
+          </>
         }
       />
 
@@ -67,6 +89,7 @@ export function OpenDaysListPage() {
           <ChipSet label="Edizioni" className="-mt-4">
             {edizioni.map((ed) => (
               <FilterChip key={ed.id} selected={activeEdizioneId === ed.id} onClick={() => setEdizioneId(ed.id)}>
+                {mostraSede && `${nomeSede(ed.sede_id)} · `}
                 {ed.nome} — {ed.anno}
               </FilterChip>
             ))}
@@ -100,8 +123,17 @@ export function OpenDaysListPage() {
                       {od.ora.slice(0, 5)} — {od.tipo}
                     </p>
                   </div>
-                  <Badge color={STATO_COLOR[od.stato]}>{STATO_LABEL[od.stato]}</Badge>
+                  <div className="-mr-2 -mt-1 flex shrink-0 items-center gap-1">
+                    <Badge color={STATO_COLOR[od.stato]}>{STATO_LABEL[od.stato]}</Badge>
+                    <IconButton icon="edit" label="Modifica Open Day" onClick={() => setOpenDayModal(od)} />
+                  </div>
                 </div>
+                {mostraSede && (
+                  <p className="-mt-2 flex items-center gap-1 text-body-m text-on-surface-variant">
+                    <Icon name="location_on" size={16} />
+                    {nomeSede(od.sede_id)}
+                  </p>
+                )}
                 <p className="flex items-center gap-1 text-body-m text-on-surface-variant">
                   <Icon name="event_seat" size={16} />
                   Posti massimi: {od.posti_max}
@@ -117,18 +149,24 @@ export function OpenDaysListPage() {
                     <span className="text-body-s text-on-surface-variant">Tutti gli indirizzi</span>
                   )}
                 </div>
-                <div className="-mx-2 mt-auto flex flex-wrap items-center gap-1 border-t border-outline-variant pt-3">
-                  <Button variant="tonal" icon="fact_check" to={`/staff/open-days/${od.id}/iscrizioni`} className="mr-auto ml-2">
+                {/* Azioni con pari peso visivo: tutte tonal, larghe e comode da toccare su smartphone. */}
+                <div className="mt-auto grid grid-cols-2 gap-2 border-t border-outline-variant pt-4">
+                  <Button variant="tonal" icon="fact_check" to={`/staff/open-days/${od.id}/iscrizioni`}>
                     Iscrizioni
                   </Button>
-                  <Button variant="text" to={`/staff/open-days/${od.id}/gruppi`}>
+                  <Button variant="tonal" icon="groups" to={`/staff/open-days/${od.id}/gruppi`}>
                     Gruppi
                   </Button>
-                  <Button variant="text" onClick={() => setOpenDayModal(od)}>
-                    Modifica
-                  </Button>
                   {/* Kiosk pubblico: aperto in una nuova scheda, da usare sul tablet dell'evento. */}
-                  <Button variant="text" href={`/mdi/kiosk/${od.id}`} target="_blank" rel="noreferrer" trailingIcon="open_in_new">
+                  <Button
+                    variant="tonal"
+                    icon="assignment"
+                    trailingIcon="open_in_new"
+                    href={`/mdi/kiosk/${od.id}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="col-span-2"
+                  >
                     Kiosk MDI
                   </Button>
                 </div>
@@ -154,9 +192,10 @@ export function OpenDaysListPage() {
       )}
 
       {showEdizioneModal && <EdizioneFormModal onClose={() => setShowEdizioneModal(false)} />}
-      {openDayModal && activeEdizioneId && (
+      {openDayModal && activeEdizione && (
         <OpenDayFormModal
-          edizioneId={activeEdizioneId}
+          edizioneId={activeEdizione.id}
+          sedeId={activeEdizione.sede_id}
           openDay={openDayModal === 'new' ? undefined : openDayModal}
           onClose={() => setOpenDayModal(null)}
         />

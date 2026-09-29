@@ -5,6 +5,7 @@
 
 import type {
   Booking,
+  Citta,
   Corso,
   Edizione,
   GoogleFormImportLog,
@@ -14,6 +15,8 @@ import type {
   OpenDay,
   OpenDayCorso,
   Profile,
+  Sede,
+  StaffAmbito,
 } from '../../types/database.types'
 import { componiMessaggio } from '../messaggi'
 import { carattereControllo } from '../codiceFiscale'
@@ -34,7 +37,52 @@ function isoDate(offsetDays: number) {
 const DEMO_USER_ID = '00000000-0000-0000-0000-000000000001'
 
 const profiles: Profile[] = [
-  { id: DEMO_USER_ID, nome_completo: 'Utente Demo', ruolo: 'admin', attivo: true, created_at: now() },
+  { id: DEMO_USER_ID, nome_completo: 'Utente Demo', ruolo: 'admin', attivo: true, is_admin: true, email: 'demo@example.com', created_at: now() },
+  { id: uuid(), nome_completo: 'Operatore Milano (demo)', ruolo: 'operatore_segreteria', attivo: true, is_admin: false, email: 'milano@example.com', created_at: now() },
+  { id: uuid(), nome_completo: 'Referente Torino (demo)', ruolo: 'coordinamento_recruitment', attivo: true, is_admin: false, email: 'torino@example.com', created_at: now() },
+]
+
+// Città e sedi (0011_multisede.sql): Milano con la sua sede, Torino con 3 sedi di fantasia.
+const citta: Citta[] = [
+  { id: uuid(), nome: 'Milano', slug: 'milano', regione: 'LOMBARDIA', created_at: now() },
+  { id: uuid(), nome: 'Torino', slug: 'torino', regione: 'PIEMONTE', created_at: now() },
+]
+
+function sede(cittaIdx: number, nome: string, slug: string, ordine: number, luogo: string, codice: string): Sede {
+  return {
+    id: uuid(),
+    citta_id: citta[cittaIdx].id,
+    nome,
+    slug,
+    attiva: true,
+    ordine,
+    luogo,
+    indicazioni: "Presentatevi 10 minuti prima all'ingresso principale e chiedete dell'accoglienza Open Day.",
+    contatti: cittaIdx === 0 ? 'tel. 02 0000000 — orientamento@example.it' : 'tel. 011 0000000 — torino@example.it',
+    luogo_firma: null,
+    mittente_nome: cittaIdx === 0 ? null : 'Immaginazione e Lavoro Torino',
+    mittente_email: null,
+    codice_meccanografico: codice,
+    classificazione_ministeriale: 'R3',
+    testo_approvazione: null,
+    testo_rifiuto: null,
+    testo_reminder: null,
+    created_at: now(),
+    updated_at: now(),
+  }
+}
+
+const sedi: Sede[] = [
+  sede(0, 'Milano', 'milano', 0, 'Immaginazione e Lavoro — Via Esempio 1, 20100 Milano', 'MICF065007'),
+  sede(1, 'Torino Centro', 'torino-centro', 1, 'Immaginazione e Lavoro — Via Esempio 10, 10100 Torino', ''),
+  sede(1, 'Torino Nord', 'torino-nord', 2, 'Immaginazione e Lavoro — Via Esempio 20, 10100 Torino', ''),
+  sede(1, 'Torino Sud', 'torino-sud', 3, 'Immaginazione e Lavoro — Via Esempio 30, 10100 Torino', ''),
+]
+const [MILANO, TORINO_CENTRO, TORINO_NORD, TORINO_SUD] = sedi
+
+const staff_ambiti: StaffAmbito[] = [
+  { id: uuid(), profile_id: profiles[1].id, citta_id: null, sede_id: MILANO.id, created_at: now() },
+  { id: uuid(), profile_id: profiles[2].id, citta_id: citta[1].id, sede_id: null, created_at: now() },
 ]
 
 const corsiSeed: [string, string][] = [
@@ -48,8 +96,21 @@ const corsiSeed: [string, string][] = [
   ['Comunicazione Digitale', 'Operatore della comunicazione digitale'],
   ['Elettricità e domotica', 'Operatore elettrico - impianti civili e domotica'],
 ]
+const corsiDi = (s: Sede, indici: number[]): Corso[] =>
+  indici.map((c, i) => ({
+    id: uuid(),
+    sede_id: s.id,
+    nome: corsiSeed[c][0],
+    qualifica: corsiSeed[c][1],
+    ordine: i + 1,
+    attivo: true,
+    codice_ministeriale: null,
+  }))
+
+// Milano: tutti i corsi (gli indici sotto si riferiscono a questo elenco). Torino: un sottoinsieme per sede.
 const corsi: Corso[] = corsiSeed.map(([nome, qualifica], i) => ({
   id: uuid(),
+  sede_id: MILANO.id,
   nome,
   qualifica,
   ordine: i + 1,
@@ -57,6 +118,11 @@ const corsi: Corso[] = corsiSeed.map(([nome, qualifica], i) => ({
   // Da impostare in Impostazioni (la corrispondenza reale corso <-> codice la conosce lo staff).
   codice_ministeriale: null,
 }))
+const corsiTorino = [
+  ...corsiDi(TORINO_CENTRO, [0, 1, 2]),
+  ...corsiDi(TORINO_NORD, [3, 4]),
+  ...corsiDi(TORINO_SUD, [5, 6, 7, 8]),
+]
 
 /** Codice fiscale di fantasia ma formalmente valido (carattere di controllo corretto). */
 function cfDemo(cognome: string, nome: string, data: string, femmina: boolean, luogo = 'F205') {
@@ -67,25 +133,34 @@ function cfDemo(cognome: string, nome: string, data: string, femmina: boolean, l
   return primi15 + carattereControllo(primi15)
 }
 
-const edizioneId = uuid()
-const edizioni: Edizione[] = [
-  {
-    id: edizioneId,
+function edizione(s: Sede): Edizione {
+  return {
+    id: uuid(),
     nome: 'Recruitment 2026-2027',
     anno: '2026-2027',
     data_apertura: isoDate(-30),
     data_chiusura: isoDate(120),
     stato: 'attiva',
+    sede_id: s.id,
     created_by: DEMO_USER_ID,
     created_at: now(),
     updated_at: now(),
-  },
-]
+  }
+}
+const edizioni: Edizione[] = [MILANO, TORINO_CENTRO, TORINO_NORD, TORINO_SUD].map(edizione)
+const edizioneId = edizioni[0].id
 
-function openDay(offset: number, ora: string, posti: number, tipo: OpenDay['tipo'] = 'OpenDay'): OpenDay {
+function openDay(
+  offset: number,
+  ora: string,
+  posti: number,
+  tipo: OpenDay['tipo'] = 'OpenDay',
+  ed: Edizione = edizioni[0],
+): OpenDay {
   return {
     id: uuid(),
-    edizione_id: edizioneId,
+    edizione_id: ed.id,
+    sede_id: ed.sede_id,
     data: isoDate(offset),
     ora,
     operatore_id: DEMO_USER_ID,
@@ -116,6 +191,13 @@ const campiDecisione = {
   motivo_rifiuto: null,
 }
 const open_days: OpenDay[] = [openDay(0, '15:00', 20), openDay(7, '10:00', 30), openDay(14, '15:30', 15, 'OpenDay2e')]
+// Torino: le 3 sedi fanno Open Day in giorni diversi (etichette del modulo unico di città con il nome della sede).
+const openDaysTorino = [
+  openDay(0, '10:00', 25, 'OpenDay', edizioni[1]),
+  openDay(3, '15:00', 20, 'OpenDay', edizioni[2]),
+  openDay(10, '10:30', 30, 'OpenDay', edizioni[3]),
+].map((od) => ({ ...od, etichetta_modulo: `${sedi.find((s) => s.id === od.sede_id)!.nome} — ${od.etichetta_modulo}` }))
+open_days.push(...openDaysTorino)
 
 // Indirizzi presentati: il 1° Open Day ha una selezione (con posti per alcuni), il 2° usa tutti i corsi
 // attivi (nessuna configurazione), il 3° solo l'area ristorazione.
@@ -139,6 +221,7 @@ const bookings: Booking[] = nomi.map(([cognome, nome], i) => {
     id: uuid(),
     open_day_id: od.id,
     edizione_id: edizioneId,
+    sede_id: MILANO.id,
     cognome,
     nome,
     data_nascita: `2012-0${(i % 9) + 1}-1${i % 9}`,
@@ -176,6 +259,7 @@ richiesteGoogle.forEach(([cognome, nome, genitore, email, odIndex], i) => {
     id: uuid(),
     open_day_id: open_days[odIndex].id,
     edizione_id: edizioneId,
+    sede_id: MILANO.id,
     cognome,
     nome,
     data_nascita: '2012-05-1' + i,
@@ -203,11 +287,32 @@ richiesteGoogle.forEach(([cognome, nome, genitore, email, odIndex], i) => {
   })
 })
 
+// Iscritti di Torino, uno per sede.
+;[['Russo', 'Chiara'], ['Costa', 'Pietro'], ['Giordano', 'Marta']].forEach(([cognome, nome], i) => {
+  const od = openDaysTorino[i]
+  const corsoId = corsiTorino.find((c) => c.sede_id === od.sede_id)!.id
+  bookings.push({
+    ...bookings[0],
+    ...campiDecisione,
+    id: uuid(),
+    open_day_id: od.id,
+    edizione_id: od.edizione_id,
+    sede_id: od.sede_id,
+    cognome,
+    nome,
+    residenza: 'Torino',
+    telefono: `3402223${String(i).padStart(3, '0')}`,
+    email: `famiglia.${cognome.toLowerCase()}@example.com`,
+    corso_id: corsoId,
+    corso2_id: null,
+    corso_iniziale_id: corsoId,
+    checked_in: i === 0,
+    checked_in_at: i === 0 ? now() : null,
+  })
+})
+
 const impostazioni: Impostazioni = {
   id: 1,
-  luogo_predefinito: 'Immaginazione e Lavoro — Via Esempio 1, 20100 Milano',
-  indicazioni_predefinite: "Presentatevi 10 minuti prima all'ingresso principale e chiedete dell'accoglienza Open Day.",
-  contatti: 'tel. 02 0000000 — orientamento@example.it',
   canale_predefinito: 'email',
   testo_approvazione:
     "Gentile famiglia, l'iscrizione di {nome} {cognome} all'Open Day di Immaginazione e Lavoro di {data} alle ore {ora} è CONFERMATA. Vi aspettiamo presso {luogo}. {indicazioni} Per informazioni: {contatti}",
@@ -215,8 +320,6 @@ const impostazioni: Impostazioni = {
     "Gentile famiglia, purtroppo non possiamo confermare l'iscrizione di {nome} {cognome} all'Open Day di {data} alle ore {ora}. {motivo} Per informazioni o per scegliere un'altra data: {contatti}",
   testo_reminder:
     "Promemoria: {nome} {cognome} è atteso/a all'Open Day di Immaginazione e Lavoro {data} alle ore {ora} presso {luogo}. {indicazioni} Per informazioni: {contatti}",
-  codice_meccanografico_sede: 'MICF065007',
-  classificazione_ministeriale: 'R3',
   updated_at: now(),
 }
 
@@ -232,6 +335,7 @@ const google_form_import_log: GoogleFormImportLog[] = [
       esito: 'importata' as const,
       messaggio: null,
       booking_id: b.id,
+      citta_id: citta[0].id,
       payload: { cognome: b.cognome, nome: b.nome, openDay: open_days.find((o) => o.id === b.open_day_id)?.etichetta_modulo },
     })),
   {
@@ -241,12 +345,14 @@ const google_form_import_log: GoogleFormImportLog[] = [
     esito: 'open_day_non_trovato',
     messaggio: 'Nessun Open Day con etichetta "Domenica 1 marzo — ore 11:00"',
     booking_id: null,
+    citta_id: citta[0].id,
     payload: { cognome: 'Galli', nome: 'Pietro', openDay: 'Domenica 1 marzo — ore 11:00' },
   },
 ]
 
 const mdi: Mdi[] = bookings.slice(0, 3).map((b, i) => ({
   id: uuid(),
+  sede_id: b.sede_id,
   open_day_id: b.open_day_id,
   booking_id: b.id,
   acc_cognome: b.cognome,
@@ -326,7 +432,10 @@ const mdi: Mdi[] = bookings.slice(0, 3).map((b, i) => ({
 
 const db: Record<string, Row[]> = {
   profiles: profiles as unknown as Row[],
-  corsi: corsi as unknown as Row[],
+  citta: citta as unknown as Row[],
+  sedi: sedi as unknown as Row[],
+  staff_ambiti: staff_ambiti as unknown as Row[],
+  corsi: [...corsi, ...corsiTorino] as unknown as Row[],
   edizioni: edizioni as unknown as Row[],
   open_days: open_days as unknown as Row[],
   open_day_corsi: open_day_corsi as unknown as Row[],
@@ -351,7 +460,7 @@ class MockQuery implements PromiseLike<Result> {
   private sort: { col: string; asc: boolean } | null = null
   private mode: 'many' | 'single' | 'maybeSingle' = 'many'
   private max: number | null = null
-  private op: { kind: 'select' } | { kind: 'insert'; rows: Row[] } | { kind: 'update'; patch: Row } = {
+  private op: { kind: 'select' } | { kind: 'insert'; rows: Row[] } | { kind: 'update'; patch: Row } | { kind: 'delete' } = {
     kind: 'select',
   }
 
@@ -369,6 +478,10 @@ class MockQuery implements PromiseLike<Result> {
   }
   update(patch: Row) {
     this.op = { kind: 'update', patch }
+    return this
+  }
+  delete() {
+    this.op = { kind: 'delete' }
     return this
   }
   eq(col: string, value: unknown) {
@@ -410,10 +523,13 @@ class MockQuery implements PromiseLike<Result> {
     let rows: Row[]
 
     if (this.op.kind === 'insert') {
-      rows = this.op.rows.map((r) => ({ id: uuid(), created_at: now(), updated_at: now(), ...defaultsFor(this.table), ...r }))
+      rows = this.op.rows.map((r) => derivaSede(this.table, { id: uuid(), created_at: now(), updated_at: now(), ...defaultsFor(this.table), ...r }))
       table.push(...rows)
     } else {
       rows = table.filter((r) => this.filters.every((f) => f(r)))
+      if (this.op.kind === 'delete') {
+        db[this.table] = table.filter((r) => !rows.includes(r))
+      }
       if (this.op.kind === 'update') {
         for (const r of rows) Object.assign(r, this.op.patch, { updated_at: now() })
       }
@@ -441,10 +557,25 @@ class MockQuery implements PromiseLike<Result> {
   }
 }
 
+/** Replica dei trigger di 0011: la sede si ricava dall'edizione / dall'Open Day, mai dal client. */
+function derivaSede(table: string, r: Row): Row {
+  if (table === 'open_days') r.sede_id = db.edizioni.find((e) => e.id === r.edizione_id)?.sede_id
+  if (table === 'mdi' && r.open_day_id) r.sede_id = db.open_days.find((o) => o.id === r.open_day_id)?.sede_id
+  return r
+}
+
 function defaultsFor(table: string): Row {
   if (table === 'mdi') return { esportato_innovaplan: false, esportato_innovaplan_at: null, esportato_innovaplan_by: null, stato_lavorazione: 'nuova' }
   if (table === 'open_days') return { tipo: 'OpenDay', stato: 'aperto', note: null, operatore_id: null }
   if (table === 'edizioni') return { stato: 'bozza', created_by: DEMO_USER_ID }
+  if (table === 'sedi') {
+    return {
+      attiva: true, ordine: 0, luogo: '', indicazioni: '', contatti: '', luogo_firma: null, mittente_nome: null,
+      mittente_email: null, codice_meccanografico: '', classificazione_ministeriale: 'R3',
+      testo_approvazione: null, testo_rifiuto: null, testo_reminder: null,
+    }
+  }
+  if (table === 'corsi') return { attivo: true, ordine: 0, codice_ministeriale: null }
   return {}
 }
 
@@ -454,23 +585,28 @@ function confermate(openDayId: string) {
   return db.bookings.filter((b) => b.open_day_id === openDayId && (b.status === 'confirmed' || b.status === 'walk_in')).length
 }
 
-// Replica di public.accoda_notifica() (0006_google_forms_notifiche.sql).
+// Replica di public.accoda_notifica() (0011_multisede.sql): testi e luogo della sede, con fallback ai comuni.
 function accodaNotifica(b: Booking, tipo: Notifica['tipo'], motivo: string | null = null) {
   const od = (db.open_days as unknown as OpenDay[]).find((o) => o.id === b.open_day_id)!
+  const sedeB = (db.sedi as unknown as Sede[]).find((s) => s.id === b.sede_id)!
   const imp = db.impostazioni[0] as unknown as Impostazioni
   let canale = imp.canale_predefinito
   if (canale === 'email' && !b.email?.trim()) canale = 'whatsapp_manuale'
-  const testo = { approvazione: imp.testo_approvazione, rifiuto: imp.testo_rifiuto, reminder: imp.testo_reminder }[tipo]
+  const campo = ({ approvazione: 'testo_approvazione', rifiuto: 'testo_rifiuto', reminder: 'testo_reminder' } as const)[tipo]
+  const testo = sedeB[campo]?.trim() || imp[campo]
   const oggetto = { approvazione: 'Iscrizione Open Day confermata', rifiuto: 'Iscrizione Open Day non confermata', reminder: 'Promemoria Open Day' }[tipo]
   db.notifiche.push({
     id: uuid(),
     booking_id: b.id,
     open_day_id: b.open_day_id,
+    sede_id: b.sede_id,
     tipo,
     canale,
     destinatario: canale === 'email' ? b.email!.trim() : b.telefono,
-    oggetto: `${oggetto} — Immaginazione e Lavoro`,
-    testo: componiMessaggio(testo, b, od, imp, motivo),
+    oggetto: `${oggetto} — ${sedeB.mittente_nome?.trim() || 'Immaginazione e Lavoro'}`,
+    testo: componiMessaggio(testo, b, od, sedeB, motivo),
+    mittente_nome: sedeB.mittente_nome,
+    mittente_email: sedeB.mittente_email,
     stato: canale === 'whatsapp_manuale' ? 'manuale' : 'in_coda',
     errore: null,
     tentativi: 0,
@@ -498,17 +634,22 @@ async function invokeFunction(name: string): Promise<Result> {
   return { data: { inviate }, error: null }
 }
 
-function iscrittiRicercabili() {
+function iscrittiRicercabili(sedeId: unknown) {
   const ods = db.open_days as unknown as OpenDay[]
   const edizioniAttive = new Set((db.edizioni as unknown as Edizione[]).filter((e) => e.stato === 'attiva').map((e) => e.id))
   return (db.bookings as unknown as Booking[]).flatMap((b) => {
     const od = ods.find((o) => o.id === b.open_day_id)
-    const ok = od && od.stato !== 'annullato' && edizioniAttive.has(od.edizione_id) && !['cancelled', 'rejected'].includes(b.status)
+    const ok =
+      b.sede_id === sedeId &&
+      od &&
+      od.stato !== 'annullato' &&
+      edizioniAttive.has(od.edizione_id) &&
+      !['cancelled', 'rejected'].includes(b.status)
     return ok ? [{ b, od }] : []
   })
 }
 
-async function rpc(fn: string, args: Row): Promise<Result> {
+async function rpc(fn: string, args: Row = {}): Promise<Result> {
   await new Promise((r) => setTimeout(r, 150))
   const od = db.open_days.find((o) => o.id === args.p_open_day_id) as OpenDay | undefined
 
@@ -522,6 +663,7 @@ async function rpc(fn: string, args: Row): Promise<Result> {
       id: uuid(),
       open_day_id: od.id,
       edizione_id: od.edizione_id,
+      sede_id: od.sede_id,
       cognome: args.p_cognome as string,
       nome: args.p_nome as string,
       telefono: args.p_telefono as string,
@@ -548,10 +690,10 @@ async function rpc(fn: string, args: Row): Promise<Result> {
     return { data: { ...booking }, error: null }
   }
   if (fn === 'kiosk_cerca_iscritti') {
-    // Replica di 0009: qualsiasi Open Day non annullato dell'edizione attiva, per cognome o nome.
+    // Replica di 0011: Open Day non annullati delle edizioni attive della sede del kiosk, per cognome o nome.
     const q = String(args.p_query ?? '').trim().toLowerCase()
     if (q.length < 2) return { data: [], error: null }
-    const rows = iscrittiRicercabili()
+    const rows = iscrittiRicercabili(args.p_sede_id)
       .filter(({ b }) =>
         [b.cognome, b.nome, `${b.cognome} ${b.nome}`, `${b.nome} ${b.cognome}`].some((t) => t.toLowerCase().startsWith(q)),
       )
@@ -561,7 +703,7 @@ async function rpc(fn: string, args: Row): Promise<Result> {
     return { data: rows, error: null }
   }
   if (fn === 'kiosk_dati_iscritto') {
-    const b = iscrittiRicercabili().find(({ b: x }) => x.id === args.p_booking_id)?.b
+    const b = iscrittiRicercabili(args.p_sede_id).find(({ b: x }) => x.id === args.p_booking_id)?.b
     if (!b) return { data: [], error: null }
     const { id, open_day_id, cognome, nome, data_nascita, scuola, telefono, email, corso_id, corso2_id, acc_cognome, acc_nome } = b
     return {
@@ -593,8 +735,37 @@ async function rpc(fn: string, args: Row): Promise<Result> {
     ]
     return { data: null, error: null }
   }
-  if (fn === 'is_staff') return { data: true, error: null }
+  if (fn === 'is_staff' || fn === 'is_admin') return { data: true, error: null }
+  // L'utente demo e' admin: vede tutte le sedi.
+  if (fn === 'sedi_accessibili') return { data: db.sedi.map((s) => s.id), error: null }
+  if (fn === 'statistiche_sedi') return { data: statisticheSedi(args.p_anno as string | null), error: null }
   return { data: null, error: { message: `RPC ${fn} non simulata in demo` } }
+}
+
+// Replica di public.statistiche_sedi() (0011_multisede.sql).
+function statisticheSedi(anno: string | null) {
+  const eds = (db.edizioni as unknown as Edizione[]).filter((e) => (anno ? e.anno === anno : e.stato === 'attiva'))
+  const ods = (db.open_days as unknown as OpenDay[]).filter((o) => eds.some((e) => e.id === o.edizione_id) && o.stato !== 'annullato')
+  const bks = db.bookings as unknown as Booking[]
+  return (db.sedi as unknown as Sede[]).map((s) => {
+    const odSede = new Set(ods.filter((o) => o.sede_id === s.id).map((o) => o.id))
+    const b = bks.filter((x) => odSede.has(x.open_day_id))
+    const m = (db.mdi as unknown as Mdi[]).filter((x) => x.sede_id === s.id && (!x.open_day_id || odSede.has(x.open_day_id)))
+    return {
+      sede_id: s.id,
+      sede_nome: s.nome,
+      citta_nome: (db.citta as unknown as Citta[]).find((c) => c.id === s.citta_id)?.nome ?? '',
+      edizioni: eds.filter((e) => e.sede_id === s.id).map((e) => e.nome).join(', ') || null,
+      open_day: odSede.size,
+      iscritti: b.filter((x) => !['cancelled', 'rejected'].includes(x.status)).length,
+      confermati: b.filter((x) => x.status === 'confirmed' || x.status === 'walk_in').length,
+      da_approvare: b.filter((x) => x.status === 'pending').length,
+      in_attesa: b.filter((x) => x.status === 'waitlist').length,
+      presenti: b.filter((x) => x.checked_in).length,
+      mdi: m.length,
+      mdi_esportate: m.filter((x) => x.esportato_innovaplan).length,
+    }
+  })
 }
 
 // --- Auth / Realtime finti ------------------------------------------------------

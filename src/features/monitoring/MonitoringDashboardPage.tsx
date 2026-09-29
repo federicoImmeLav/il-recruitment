@@ -17,6 +17,7 @@ import { useOpenDayCorsi } from '../../hooks/useOpenDayCorsi'
 import { riepilogoIndirizzi } from '../gruppi/gruppi'
 import { RichiesteDaApprovare } from '../bookings/RichiesteDaApprovare'
 import { ElencoIscritti } from '../bookings/ElencoIscritti'
+import { useSede } from '../sedi/SedeProvider'
 
 function KpiCard({ label, value, icon, tone }: { label: string; value: number | string; icon: string; tone: string }) {
   return (
@@ -33,11 +34,13 @@ function KpiCard({ label, value, icon, tone }: { label: string; value: number | 
 }
 
 export function MonitoringDashboardPage() {
-  const { data: openDays, isLoading, error } = useOpenDays()
+  const { sedeId, multiSede, nomeSede } = useSede()
+  const { data: openDays, isLoading, error } = useOpenDays({ sedeId })
   const [selectedId, setSelectedId] = useState<string | undefined>(undefined)
 
   const aperti = openDays?.filter((od) => od.stato === 'aperto') ?? []
-  const effectiveSelectedId = selectedId ?? aperti[0]?.id
+  // La scelta resta valida solo se l'Open Day e' ancora nell'elenco (cambiando sede puo' sparire).
+  const effectiveSelectedId = aperti.find((od) => od.id === selectedId)?.id ?? aperti[0]?.id
 
   const { data: bookings } = useBookings(effectiveSelectedId)
   const { data: mdiList } = useMdiList({ openDayId: effectiveSelectedId })
@@ -76,6 +79,7 @@ export function MonitoringDashboardPage() {
           <ChipSet label="Open Day aperti" className="-mt-4">
             {aperti.map((od) => (
               <FilterChip key={od.id} selected={effectiveSelectedId === od.id} onClick={() => setSelectedId(od.id)}>
+                {multiSede && !sedeId && `${nomeSede(od.sede_id)} · `}
                 {new Date(od.data).toLocaleDateString('it-IT', { day: '2-digit', month: 'short' })} · {od.ora.slice(0, 5)}
               </FilterChip>
             ))}

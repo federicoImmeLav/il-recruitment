@@ -1,8 +1,9 @@
 import { useFormContext } from 'react-hook-form'
 import { InputField, SelectField } from '../../../components/ui/Field'
-import { useCorsi } from '../../../hooks/useCorsi'
 import { CANALE_CONOSCENZA_OPTIONS, dicituraCorso } from '../../../lib/constants'
+import type { Corso } from '../../../types/database.types'
 import { ChoiceItem, KioskSection, PrefillBadge } from '../kioskUi'
+import { useKioskSede } from '../kioskSede'
 import type { MdiFormValues } from '../mdiFormTypes'
 
 const CERTIFICAZIONI = [
@@ -19,7 +20,8 @@ const PRIORITA = [
 ] as const
 
 export function StepCorsiCertificazioni({ precompilati }: { precompilati: ReadonlySet<keyof MdiFormValues> }) {
-  const { data: corsi } = useCorsi()
+  // 1ª preferenza tra i corsi della sede; 2ª e 3ª anche tra quelli delle altre sedi della città.
+  const { sede, corsiSede, altreSedi } = useKioskSede()
   const {
     register,
     watch,
@@ -28,6 +30,14 @@ export function StepCorsiCertificazioni({ precompilati }: { precompilati: Readon
   } = useFormContext<MdiFormValues>()
   const [pref1, pref2, pref3, canaleAltro] = watch(['corso_pref1_id', 'corso_pref2_id', 'corso_pref3_id', 'canale_altro'])
   const scelti = [pref1, pref2, pref3]
+  const opzioni = (corsi: Corso[], i: number) =>
+    corsi
+      .filter((c) => c.id === scelti[i] || !scelti.slice(0, i).includes(c.id))
+      .map((c) => (
+        <option key={c.id} value={c.id}>
+          {dicituraCorso(c, 'breve')}
+        </option>
+      ))
 
   const nessunaReg = register('cert_nessuna', {
     validate: (v, f) =>
@@ -56,13 +66,18 @@ export function StepCorsiCertificazioni({ precompilati }: { precompilati: Readon
                 {...register(campo, i === 0 ? { required: 'Seleziona almeno la 1ª preferenza' } : {})}
               >
                 <option value="">{vuoto}</option>
-                {corsi
-                  ?.filter((c) => c.id === scelti[i] || !scelti.slice(0, i).includes(c.id))
-                  .map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {dicituraCorso(c, 'breve')}
-                    </option>
-                  ))}
+                {i === 0 || altreSedi.length === 0 ? (
+                  opzioni(corsiSede, i)
+                ) : (
+                  <>
+                    <optgroup label={sede.nome}>{opzioni(corsiSede, i)}</optgroup>
+                    {altreSedi.map((a) => (
+                      <optgroup key={a.sede.id} label={a.sede.nome}>
+                        {opzioni(a.corsi, i)}
+                      </optgroup>
+                    ))}
+                  </>
+                )}
               </SelectField>
             </div>
           </div>

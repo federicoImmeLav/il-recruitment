@@ -17,6 +17,7 @@ import {
 } from '../../lib/riferimenti'
 import { ChoiceItem } from './kioskUi'
 import type { MdiFormValues } from './mdiFormTypes'
+import { useKioskSede } from './kioskSede'
 
 type Campo = keyof MdiFormValues
 type CampoTesto = {
@@ -264,12 +265,13 @@ export function CampoLuogoNascita({
 }
 
 // ---------------------------------------------------------------------------
-// Scuola di provenienza (anagrafe MIUR scuole medie della Lombardia)
+// Scuola di provenienza (anagrafe MIUR scuole medie della regione della sede)
 // ---------------------------------------------------------------------------
 
 export function CampoScuolaProvenienza() {
   const { setValue, control } = useFormContext<MdiFormValues>()
-  const { data: scuole, isLoading } = useScuoleMedie()
+  const { citta } = useKioskSede()
+  const { data: scuole, isLoading } = useScuoleMedie(citta?.regione)
   const cod = useWatch({ control, name: 'all_scuola_provenienza_cod' })
   const { field } = useController<MdiFormValues, 'all_scuola_provenienza'>({ name: 'all_scuola_provenienza' })
 

@@ -5,11 +5,11 @@ import { Dialog } from '../../../components/ui/Dialog'
 import { ErrorBanner, InfoBanner, Spinner } from '../../../components/ui/Spinner'
 import { Icon } from '../../../components/ui/Icon'
 import { useSnackbar } from '../../../components/ui/Snackbar'
-import { useCorsi } from '../../../hooks/useCorsi'
+import { corsiDellaSede, useCorsi } from '../../../hooks/useCorsi'
 import { useMdiList, useSegnaEsportate } from '../../../hooks/useMdi'
-import { useImpostazioni } from '../../../hooks/useNotifiche'
 import { useOpenDays } from '../../../hooks/useOpenDays'
 import { useAuth } from '../../auth/AuthProvider'
+import { useSede } from '../../sedi/SedeProvider'
 import { annoScolasticoIscrizione, avvisiMdi, generaCsv, nomeFile, scaricaCsv, type ContestoExport } from './innovaplanCsv'
 
 type Selezione = 'da_esportare' | 'tutte' | `od:${string}`
@@ -18,13 +18,23 @@ type Selezione = 'da_esportare' | 'tutte' | `od:${string}`
  * Export delle MDI nel CSV "Alunni e scelte" da importare su INNOVAPLAN.
  * Il file e' generato nel browser (lo staff legge gia' le MDI tramite RLS);
  * segnare le MDI come esportate e' un passo separato e sempre manuale.
+ * Sempre per una sola sede: codice meccanografico e codici indirizzo sono della sede.
  */
 export function ExportInnovaplanModal({ onClose }: { onClose: () => void }) {
   const { profile } = useAuth()
-  const { data: tutte, isLoading, error } = useMdiList({})
-  const { data: corsi } = useCorsi()
-  const { data: imp } = useImpostazioni()
-  const { data: openDays } = useOpenDays()
+  const { sedi, tutteLeSedi, sedeId: sedeCorrente, multiSede } = useSede()
+  const [sedeId, setSedeId] = useState(sedeCorrente ?? '')
+  const sede = sedi.find((s) => s.id === sedeId)
+  const { data: tutte, isLoading, error } = useMdiList({ sedeId: sedeId || undefined })
+  const { data: tuttiICorsi } = useCorsi()
+  const corsiSede = corsiDellaSede(tuttiICorsi, sedeId)
+  // Preferenze 2/3 di un'altra sede: vanno nel tracciato (sotto la I scuola) solo se quella
+  // sede ha lo stesso codice meccanografico, cioe' e' la stessa scuola per il SIDI.
+  const corsi = tuttiICorsi?.filter((c) => {
+    const s = tutteLeSedi.find((x) => x.id === c.sede_id)
+    return c.sede_id === sedeId || (!!sede?.codice_meccanografico.trim() && s?.codice_meccanografico === sede.codice_meccanografico)
+  })
+  const { data: openDays } = useOpenDays({ sedeId: sedeId || undefined })
   const segna = useSegnaEsportate()
   const snackbar = useSnackbar()
 
@@ -34,18 +44,19 @@ export function ExportInnovaplanModal({ onClose }: { onClose: () => void }) {
   const [segnate, setSegnate] = useState(false)
 
   const righe = useMemo(() => {
+    if (!sedeId) return []
     const lista = tutte ?? []
     if (selezione === 'da_esportare') return lista.filter((m) => !m.esportato_innovaplan)
     if (selezione === 'tutte') return lista
     return lista.filter((m) => m.open_day_id === selezione.slice(3))
-  }, [tutte, selezione])
+  }, [tutte, selezione, sedeId])
 
   const ctx: ContestoExport | null =
-    imp && corsi
+    sede && corsi
       ? {
           annoScolastico: anno,
-          codiceSede: imp.codice_meccanografico_sede,
-          classificazione: imp.classificazione_ministeriale,
+          codiceSede: sede.codice_meccanografico,
+          classificazione: sede.classificazione_ministeriale,
           corsi,
         }
       : null
@@ -53,7 +64,7 @@ export function ExportInnovaplanModal({ onClose }: { onClose: () => void }) {
   const incomplete = ctx
     ? righe.map((m) => ({ m, avvisi: avvisiMdi(m, ctx) })).filter((x) => x.avvisi.length > 0)
     : []
-  const corsiSenzaCodice = corsi?.filter((c) => !c.codice_ministeriale) ?? []
+  const corsiSenzaCodice = corsiSede.filter((c) => !c.codice_ministeriale)
 
   function scarica() {
     if (!ctx || righe.length === 0) return
@@ -81,7 +92,11 @@ export function ExportInnovaplanModal({ onClose }: { onClose: () => void }) {
           <Button variant="text" onClick={onClose}>
             Chiudi
           </Button>
-          <Button icon="download" disabled={!ctx || righe.length === 0} onClick={scarica}>
+          <Button
+            icon="download"
+            disabled={!ctx || righe.length === 0 || !sede?.codice_meccanografico.trim()}
+            onClick={scarica}
+          >
             Scarica CSV ({righe.length})
           </Button>
         </>
@@ -92,6 +107,33 @@ export function ExportInnovaplanModal({ onClose }: { onClose: () => void }) {
           Genera il file nel formato <strong>“Alunni e scelte”</strong> (stesse colonne dell’export SIDI) da caricare su
           INNOVAPLAN per creare l’anagrafica.
         </p>
+
+        {multiSede && (
+          <SelectField
+            label="Sede"
+            required
+            value={sedeId}
+            onChange={(e) => {
+              setSedeId(e.target.value)
+              setSelezione('da_esportare')
+              setScaricate(null)
+            }}
+          >
+            <option value="">Seleziona la sede da esportare…</option>
+            {sedi.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.nome}
+              </option>
+            ))}
+          </SelectField>
+        )}
+
+        {sede && !sede.codice_meccanografico.trim() && (
+          <InfoBanner tone="warning" icon="warning">
+            Manca il codice meccanografico della sede {sede.nome}: impostalo in{' '}
+            <strong>Impostazioni → Dati per INNOVAPLAN</strong> prima di esportare.
+          </InfoBanner>
+        )}
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <SelectField
@@ -131,7 +173,7 @@ export function ExportInnovaplanModal({ onClose }: { onClose: () => void }) {
           </InfoBanner>
         )}
 
-        {righe.length === 0 && !isLoading && <p>Nessuna MDI da esportare con questa scelta.</p>}
+        {sedeId && righe.length === 0 && !isLoading && <p>Nessuna MDI da esportare con questa scelta.</p>}
 
         {incomplete.length > 0 && (
           <details className="group rounded-md bg-surface-container-lowest">

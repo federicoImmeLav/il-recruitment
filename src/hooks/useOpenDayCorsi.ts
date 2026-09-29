@@ -1,17 +1,19 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabaseClient'
 import type { Corso, OpenDayCorso } from '../types/database.types'
-import { useCorsi } from './useCorsi'
+import { corsiDellaSede, useCorsi } from './useCorsi'
+import { useOpenDayPublic } from './useOpenDays'
 
 export type IndirizzoOpenDay = { corso: Corso; posti_max: number | null }
 
 /**
  * Indirizzi presentati in un Open Day, nell'ordine configurato. Se l'Open Day
- * non ha una configurazione (`configurati: false`) valgono tutti i corsi attivi.
- * Leggibile anche da anon per gli Open Day aperti (form pubblico).
+ * non ha una configurazione (`configurati: false`) valgono tutti i corsi attivi
+ * della sua sede. Leggibile anche da anon per gli Open Day aperti (form pubblico).
  */
 export function useOpenDayCorsi(openDayId: string | undefined) {
   const corsi = useCorsi()
+  const openDay = useOpenDayPublic(openDayId)
   const righe = useQuery({
     queryKey: ['open_day_corsi', openDayId],
     enabled: !!openDayId,
@@ -28,20 +30,20 @@ export function useOpenDayCorsi(openDayId: string | undefined) {
 
   const configurati = (righe.data?.length ?? 0) > 0
   const indirizzi: IndirizzoOpenDay[] | undefined =
-    corsi.data && righe.data
+    corsi.data && righe.data && openDay.data
       ? configurati
         ? righe.data.flatMap((r) => {
             const corso = corsi.data.find((c) => c.id === r.corso_id)
             return corso ? [{ corso, posti_max: r.posti_max }] : []
           })
-        : corsi.data.map((corso) => ({ corso, posti_max: null }))
+        : corsiDellaSede(corsi.data, openDay.data.sede_id).map((corso) => ({ corso, posti_max: null }))
       : undefined
 
   return {
     indirizzi,
     configurati,
-    isLoading: corsi.isLoading || righe.isLoading,
-    error: corsi.error ?? righe.error,
+    isLoading: corsi.isLoading || righe.isLoading || openDay.isLoading,
+    error: corsi.error ?? righe.error ?? openDay.error,
   }
 }
 

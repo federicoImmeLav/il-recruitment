@@ -4,6 +4,7 @@ import { ErrorBanner, InfoBanner } from '../../../components/ui/Spinner'
 import { Icon } from '../../../components/ui/Icon'
 import { fetchKioskDatiIscritto, useKioskCercaIscritti } from '../../../hooks/useMdi'
 import type { KioskDatiIscritto, KioskIscritto } from '../../../types/database.types'
+import { useKioskSede } from '../kioskSede'
 
 function useDebounced(value: string, ms = 250) {
   const [debounced, setDebounced] = useState(value)
@@ -30,14 +31,15 @@ export function StepIdentificazione({ selezionato, onSeleziona, onAvanti }: Prop
   const [loadingId, setLoadingId] = useState<string | null>(null)
   const [errore, setErrore] = useState<string | null>(null)
   const debounced = useDebounced(query)
-  const ricerca = useKioskCercaIscritti(debounced)
+  const { sede } = useKioskSede()
+  const ricerca = useKioskCercaIscritti(sede.id, debounced)
   const mostraRisultati = !selezionato && debounced.trim().length >= 2
 
   async function scegli(iscritto: KioskIscritto) {
     setErrore(null)
     setLoadingId(iscritto.id)
     try {
-      const dati = await fetchKioskDatiIscritto(iscritto.id)
+      const dati = await fetchKioskDatiIscritto(sede.id, iscritto.id)
       if (!dati) throw new Error('non trovato')
       onSeleziona(dati)
     } catch {

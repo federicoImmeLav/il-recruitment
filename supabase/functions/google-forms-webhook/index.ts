@@ -2,9 +2,15 @@
 // Script in integrations/google-forms/Code.gs) e le salva come iscrizioni
 // "da approvare" (status 'pending').
 //
+// Un modulo per città (0011_multisede.sql): l'Apps Script manda lo slug della
+// città nell'header `x-citta` (default "milano") e l'Open Day si cerca solo tra
+// quelli delle sedi di quella città.
+//
 // Protezione: niente JWT (Apps Script non ne ha), ma header `x-webhook-secret`
-// che deve coincidere con il secret GOOGLE_FORMS_SECRET. Ogni chiamata viene
-// registrata in google_form_import_log, cosi' lo staff vede anche gli scarti.
+// che deve coincidere con il secret della città: GOOGLE_FORMS_SECRET_<SLUG>
+// (es. GOOGLE_FORMS_SECRET_TORINO), oppure GOOGLE_FORMS_SECRET per Milano.
+// Ogni chiamata viene registrata in google_form_import_log, cosi' lo staff
+// della città vede anche gli scarti.
 
 import { adminClient, json, segretoValido } from '../_shared/util.ts'
 
@@ -39,9 +45,15 @@ function dataIso(s: unknown): string | null {
   return m ? `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}` : null
 }
 
+function segretoCitta(slug: string) {
+  const perCitta = Deno.env.get(`GOOGLE_FORMS_SECRET_${slug.toUpperCase().replace(/-/g, '_')}`)
+  return perCitta ?? (slug === 'milano' ? Deno.env.get('GOOGLE_FORMS_SECRET') : undefined)
+}
+
 Deno.serve(async (req) => {
   if (req.method !== 'POST') return json({ error: 'Metodo non consentito' }, 405)
-  if (!segretoValido(req.headers.get('x-webhook-secret'), Deno.env.get('GOOGLE_FORMS_SECRET'))) {
+  const cittaSlug = (req.headers.get('x-citta') ?? 'milano').trim().toLowerCase()
+  if (!/^[a-z0-9-]+$/.test(cittaSlug) || !segretoValido(req.headers.get('x-webhook-secret'), segretoCitta(cittaSlug))) {
     return json({ error: 'Non autorizzato' }, 401)
   }
 
@@ -53,14 +65,23 @@ Deno.serve(async (req) => {
   }
 
   const db = adminClient()
+  const { data: citta } = await db.from('citta').select('id').eq('slug', cittaSlug).maybeSingle()
   const log = (esito: string, messaggio: string | null, booking_id: string | null = null) =>
     db.from('google_form_import_log').insert({
       response_id: testo(payload?.responseId),
       esito,
       messaggio,
       booking_id,
+      citta_id: citta?.id ?? null,
       payload,
     })
+
+  if (!citta) {
+    await log('errore', `Città "${cittaSlug}" non trovata: controlla la proprietà CITTA dell'Apps Script`)
+    return json({ esito: 'errore' })
+  }
+  const { data: sedi } = await db.from('sedi').select('id').eq('citta_id', citta.id)
+  const sediCitta = (sedi ?? []).map((s) => s.id)
 
   const mancanti = (['responseId', 'openDay', 'cognome', 'nome', 'telefono'] as const).filter(
     (k) => !testo(payload?.[k]),
@@ -83,7 +104,8 @@ Deno.serve(async (req) => {
 
   const { data: openDays, error: odError } = await db
     .from('open_days')
-    .select('id, edizione_id, etichetta_modulo')
+    .select('id, sede_id, etichetta_modulo')
+    .in('sede_id', sediCitta)
     .not('etichetta_modulo', 'is', null)
   if (odError) {
     await log('errore', odError.message)
@@ -91,20 +113,28 @@ Deno.serve(async (req) => {
   }
   const openDay = openDays?.find((o) => normalizza(o.etichetta_modulo) === normalizza(payload.openDay))
   if (!openDay) {
-    await log('open_day_non_trovato', `Nessun Open Day con etichetta "${payload.openDay}"`)
+    await log('open_day_non_trovato', `Nessun Open Day della città con etichetta "${payload.openDay}"`)
     return json({ esito: 'open_day_non_trovato' })
   }
 
-  const { data: corsi } = await db.from('corsi').select('id, nome')
-  const corsoId = (nome: unknown) => {
+  // Corsi della sede dell'Open Day prima, poi delle altre sedi della città: la 1ª
+  // scelta deve essere della sede (vincolo in 0011), la 2ª puo' essere cross-sede.
+  const { data: corsiCitta } = await db.from('corsi').select('id, nome, sede_id').in('sede_id', sediCitta)
+  const corsi = [...(corsiCitta ?? [])].sort(
+    (a, b) => Number(b.sede_id === openDay.sede_id) - Number(a.sede_id === openDay.sede_id),
+  )
+  const corsoId = (nome: unknown, soloSede: boolean) => {
     const n = testo(nome)
     if (!n) return null
-    return corsi?.find((c) => normalizza(n).startsWith(normalizza(c.nome)))?.id ?? null
+    return (
+      corsi.find((c) => (!soloSede || c.sede_id === openDay.sede_id) && normalizza(n).startsWith(normalizza(c.nome)))
+        ?.id ?? null
+    )
   }
 
   // Indirizzi dell'Open Day (0010): se quello scelto non c'e' l'iscrizione si salva
   // comunque (lo staff la vede "fuori Open Day" e la sposta), ma lo si annota nel log.
-  const corso1Id = corsoId(payload.corso1)
+  const corso1Id = corsoId(payload.corso1, true)
   const { data: indirizziOd } = await db.from('open_day_corsi').select('corso_id').eq('open_day_id', openDay.id)
   const fuoriOpenDay =
     corso1Id && indirizziOd?.length && !indirizziOd.some((r) => r.corso_id === corso1Id)
@@ -117,9 +147,9 @@ Deno.serve(async (req) => {
 
   const { data: booking, error } = await db
     .from('bookings')
+    // sede_id ed edizione_id li ricava il trigger dall'Open Day.
     .insert({
       open_day_id: openDay.id,
-      edizione_id: openDay.edizione_id,
       google_response_id: payload.responseId,
       cognome: payload.cognome.trim(),
       nome: payload.nome.trim(),
@@ -130,7 +160,7 @@ Deno.serve(async (req) => {
       classe: testo(payload.classe),
       residenza: testo(payload.residenza),
       corso_id: corso1Id,
-      corso2_id: corsoId(payload.corso2),
+      corso2_id: corsoId(payload.corso2, false),
       acc_cognome: testo(payload.accCognome),
       acc_nome: testo(payload.accNome),
       canale: 'online',

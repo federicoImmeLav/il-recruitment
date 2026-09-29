@@ -23,7 +23,74 @@ export type Profile = {
   nome_completo: string
   ruolo: RuoloOperatore
   attivo: boolean
+  /** Accesso a tutte le sedi + gestione città/sedi/utenti (0011_multisede.sql). */
+  is_admin: boolean
+  email: string | null
   created_at: string
+}
+
+export type Citta = {
+  id: string
+  nome: string
+  slug: string
+  /** Regione come nell'anagrafe scuole MIUR (LOMBARDIA, PIEMONTE…). */
+  regione: string
+  created_at: string
+}
+
+export type Sede = {
+  id: string
+  citta_id: string
+  nome: string
+  slug: string
+  attiva: boolean
+  ordine: number
+  luogo: string
+  indicazioni: string
+  contatti: string
+  /** Vuoto = nome della città. */
+  luogo_firma: string | null
+  mittente_nome: string | null
+  mittente_email: string | null
+  codice_meccanografico: string
+  classificazione_ministeriale: string
+  /** Vuoti = template globali di `impostazioni`. */
+  testo_approvazione: string | null
+  testo_rifiuto: string | null
+  testo_reminder: string | null
+  created_at: string
+  updated_at: string
+}
+
+/** Colonne di `sedi` leggibili da anon (vedi GRANT in 0011_multisede.sql). */
+export type SedePublic = Pick<
+  Sede,
+  'id' | 'citta_id' | 'nome' | 'slug' | 'attiva' | 'ordine' | 'luogo' | 'indicazioni' | 'luogo_firma'
+>
+
+/** Una riga per città (referente) o per sede (operatore). */
+export type StaffAmbito = {
+  id: string
+  profile_id: string
+  citta_id: string | null
+  sede_id: string | null
+  created_at: string
+}
+
+/** Riga di statistiche_sedi() per la dashboard comparativa. */
+export type StatisticheSede = {
+  sede_id: string
+  sede_nome: string
+  citta_nome: string
+  edizioni: string | null
+  open_day: number
+  iscritti: number
+  confermati: number
+  da_approvare: number
+  in_attesa: number
+  presenti: number
+  mdi: number
+  mdi_esportate: number
 }
 
 export type Edizione = {
@@ -33,6 +100,7 @@ export type Edizione = {
   data_apertura: string | null
   data_chiusura: string | null
   stato: StatoEdizione
+  sede_id: string
   created_by: string | null
   created_at: string
   updated_at: string
@@ -41,6 +109,8 @@ export type Edizione = {
 export type OpenDay = {
   id: string
   edizione_id: string
+  /** Derivata dall'edizione (trigger). */
+  sede_id: string
   data: string
   ora: string
   operatore_id: string | null
@@ -50,7 +120,7 @@ export type OpenDay = {
   stato: StatoOpenDay
   /** Testo dell'opzione del menu nel Google Modulo collegata a questo Open Day. */
   etichetta_modulo: string | null
-  /** Luogo/indicazioni specifici; se vuoto valgono quelli di `impostazioni`. */
+  /** Luogo/indicazioni specifici; se vuoto valgono quelli della sede. */
   luogo_override: string | null
   created_at: string
   updated_at: string
@@ -79,11 +149,12 @@ export type KioskDatiIscritto = Pick<
 /** Colonne effettivamente leggibili da anon (vedi GRANT in 0002_rls_policies.sql). */
 export type OpenDayPublic = Pick<
   OpenDay,
-  'id' | 'edizione_id' | 'data' | 'ora' | 'posti_max' | 'tipo' | 'stato'
+  'id' | 'edizione_id' | 'sede_id' | 'data' | 'ora' | 'posti_max' | 'tipo' | 'stato'
 >
 
 export type Corso = {
   id: string
+  sede_id: string
   nome: string
   qualifica: string
   ordine: number
@@ -104,6 +175,8 @@ export type Booking = {
   id: string
   open_day_id: string
   edizione_id: string
+  /** Derivata dall'Open Day (trigger). */
+  sede_id: string
   cognome: string
   nome: string
   data_nascita: string | null
@@ -141,6 +214,7 @@ export type Notifica = {
   id: string
   booking_id: string
   open_day_id: string
+  sede_id: string
   tipo: TipoNotifica
   canale: CanaleNotifica
   destinatario: string
@@ -150,21 +224,19 @@ export type Notifica = {
   errore: string | null
   tentativi: number
   in_invio_at: string | null
+  mittente_nome: string | null
+  mittente_email: string | null
   created_at: string
   sent_at: string | null
 }
 
+/** Default globali (0011): canale e template dei testi, personalizzabili per sede. */
 export type Impostazioni = {
   id: 1
-  luogo_predefinito: string
-  indicazioni_predefinite: string
-  contatti: string
   canale_predefinito: CanaleNotifica
   testo_approvazione: string
   testo_rifiuto: string
   testo_reminder: string
-  codice_meccanografico_sede: string
-  classificazione_ministeriale: string
   updated_at: string
 }
 
@@ -177,11 +249,14 @@ export type GoogleFormImportLog = {
   esito: EsitoImport
   messaggio: string | null
   booking_id: string | null
+  citta_id: string | null
   payload: Record<string, unknown>
 }
 
 export type Mdi = {
   id: string
+  /** Sede in cui e' stata compilata: la MDI e' visibile solo a quella sede (0011). */
+  sede_id: string
   open_day_id: string | null
   booking_id: string | null
 
@@ -277,7 +352,22 @@ export interface Database {
         Row: Profile
         // Nessun insert diretto da client: la riga viene creata dal trigger handle_new_user().
         Insert: Partial<Profile> & { id: string }
-        Update: Partial<Profile>
+        Update: Partial<Pick<Profile, 'nome_completo' | 'attivo' | 'is_admin'>>
+      } & NoRelationships
+      citta: {
+        Row: Citta
+        Insert: Pick<Citta, 'nome' | 'slug' | 'regione'> & { id?: string }
+        Update: Partial<Pick<Citta, 'nome' | 'slug' | 'regione'>>
+      } & NoRelationships
+      sedi: {
+        Row: Sede
+        Insert: Partial<Omit<Sede, 'id' | 'created_at' | 'updated_at'>> & Pick<Sede, 'citta_id' | 'nome' | 'slug'>
+        Update: Partial<Omit<Sede, 'id' | 'created_at' | 'updated_at'>>
+      } & NoRelationships
+      staff_ambiti: {
+        Row: StaffAmbito
+        Insert: Pick<StaffAmbito, 'profile_id'> & Partial<Pick<StaffAmbito, 'citta_id' | 'sede_id'>>
+        Update: never
       } & NoRelationships
       edizioni: {
         Row: Edizione
@@ -288,6 +378,7 @@ export interface Database {
           data_apertura?: string | null
           data_chiusura?: string | null
           stato?: StatoEdizione
+          sede_id: string
           created_by?: string | null
         }
         Update: Partial<Edizione>
@@ -313,6 +404,7 @@ export interface Database {
         Row: Corso
         Insert: {
           id?: string
+          sede_id: string
           nome: string
           qualifica: string
           ordine?: number
@@ -330,13 +422,15 @@ export interface Database {
       bookings: {
         Row: Booking
         // Nessun insert diretto da client: le prenotazioni si creano solo via RPC create_booking().
-        Insert: Partial<Booking> & { open_day_id: string; edizione_id: string; cognome: string; nome: string; telefono: string }
+        Insert: Partial<Booking> & { open_day_id: string; cognome: string; nome: string; telefono: string }
         Update: Partial<Booking>
       } & NoRelationships
       mdi: {
         Row: Mdi
         Insert: {
           id?: string
+          /** Ignorata se c'e' open_day_id (il trigger usa la sede dell'Open Day). */
+          sede_id: string
           open_day_id?: string | null
           booking_id?: string | null
           acc_cognome: string
@@ -450,12 +544,24 @@ export interface Database {
         Returns: number
       }
       kiosk_cerca_iscritti: {
-        Args: { p_query: string }
+        Args: { p_sede_id: string; p_query: string }
         Returns: KioskIscritto[]
       }
       kiosk_dati_iscritto: {
-        Args: { p_booking_id: string }
+        Args: { p_sede_id: string; p_booking_id: string }
         Returns: KioskDatiIscritto[]
+      }
+      sedi_accessibili: {
+        Args: Record<string, never>
+        Returns: string[]
+      }
+      is_admin: {
+        Args: Record<string, never>
+        Returns: boolean
+      }
+      statistiche_sedi: {
+        Args: { p_anno?: string | null }
+        Returns: StatisticheSede[]
       }
       decidi_iscrizione: {
         Args: { p_booking_id: string; p_approva: boolean; p_motivo?: string | null }

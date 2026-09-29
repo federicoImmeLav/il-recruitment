@@ -11,13 +11,15 @@ import { useCorsi } from '../../hooks/useCorsi'
 import { MdiDetailDrawer } from './MdiDetailDrawer'
 import { Button } from '../../components/ui/Button'
 import { ExportInnovaplanModal } from './export/ExportInnovaplanModal'
+import { useSede } from '../sedi/SedeProvider'
 
 export function MdiListPage() {
   const [ricerca, setRicerca] = useState('')
   const [soloDaEsportare, setSoloDaEsportare] = useState(false)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [exportAperto, setExportAperto] = useState(false)
-  const { data: mdiList, isLoading, error } = useMdiList({ ricerca: ricerca || undefined, soloDaEsportare })
+  const { sedeId, multiSede, nomeSede } = useSede()
+  const { data: mdiList, isLoading, error } = useMdiList({ sedeId, ricerca: ricerca || undefined, soloDaEsportare })
   const { data: corsi } = useCorsi()
 
   const corsoNome = (id: string | null) => corsi?.find((c) => c.id === id)?.nome ?? '—'
@@ -73,7 +75,13 @@ export function MdiListPage() {
                   {m.all_cognome} {m.all_nome}
                 </span>
               }
-              supporting={`${corsoNome(m.corso_pref1_id)} · ${new Date(m.created_at).toLocaleDateString('it-IT')}`}
+              supporting={[
+                multiSede && !sedeId ? nomeSede(m.sede_id) : null,
+                corsoNome(m.corso_pref1_id),
+                new Date(m.created_at).toLocaleDateString('it-IT'),
+              ]
+                .filter(Boolean)
+                .join(' · ')}
               trailing={
                 <Badge color={m.esportato_innovaplan ? 'success' : 'warning'}>
                   {m.esportato_innovaplan ? 'Esportata' : 'Da esportare'}

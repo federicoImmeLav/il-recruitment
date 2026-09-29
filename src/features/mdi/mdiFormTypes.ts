@@ -211,9 +211,6 @@ export const STEP_FIELDS: (keyof MdiFormValues)[][] = [
 
 export const SEZIONI = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')
 
-/** Luogo stampato accanto alle firme ("Milano, il …"), come nel modulo cartaceo. */
-export const LUOGO_FIRMA = 'Milano'
-
 /**
  * Annualità formativa a cui si riferisce la MDI, es. "27/28": l'anno formativo
  * successivo a quello in corso (che inizia a settembre).

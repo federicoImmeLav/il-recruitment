@@ -10,7 +10,7 @@ const cf = (s: string) => s.replace(/\s/g, '').toUpperCase() || null
 /** Converte i valori del form kiosk nella riga `mdi` da inserire. */
 export function mdiDaForm(
   v: MdiFormValues,
-  ctx: { openDayId: string | null; bookingId: string | null },
+  ctx: { sedeId: string; openDayId: string | null; bookingId: string | null },
 ): CreateMdiInput {
   // Preferenze senza duplicati, compattate in ordine.
   const prefs = [...new Set([v.corso_pref1_id, v.corso_pref2_id, v.corso_pref3_id].filter(Boolean))]
@@ -20,6 +20,7 @@ export function mdiDaForm(
   const accRes = !v.acc_residenza_come_allievo
 
   return {
+    sede_id: ctx.sedeId,
     open_day_id: ctx.openDayId,
     booking_id: ctx.bookingId,
 

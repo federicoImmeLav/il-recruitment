@@ -5,6 +5,8 @@
 //   BREVO_API_KEY               chiave API Brevo (email; anche SMS se attivati)
 //   NOTIFICHE_MITTENTE_EMAIL    mittente verificato su Brevo
 //   NOTIFICHE_MITTENTE_NOME     (facoltativo) nome mittente, default "Immaginazione e Lavoro"
+// Una sede puo' avere mittente proprio (sedi.mittente_nome/_email, copiati sulla
+// notifica da accoda_notifica): ha la precedenza sui secret, e va verificato su Brevo.
 //   BREVO_SMS_SENDER            (facoltativo) mittente SMS: se assente il canale SMS e' spento
 
 export interface NotificaDaInviare {
@@ -13,6 +15,8 @@ export interface NotificaDaInviare {
   destinatario: string
   oggetto: string
   testo: string
+  mittente_nome?: string | null
+  mittente_email?: string | null
 }
 
 /** Esito: ok, oppure errore con messaggio leggibile dallo staff. */
@@ -46,10 +50,13 @@ function escapeHtml(s: string) {
 }
 
 async function inviaEmail(n: NotificaDaInviare): Promise<EsitoInvio> {
-  const mittente = Deno.env.get('NOTIFICHE_MITTENTE_EMAIL')
+  const mittente = n.mittente_email || Deno.env.get('NOTIFICHE_MITTENTE_EMAIL')
   if (!mittente) return { ok: false, errore: 'Canale non configurato (manca NOTIFICHE_MITTENTE_EMAIL)', definitivo: true }
   return brevo('smtp/email', {
-    sender: { email: mittente, name: Deno.env.get('NOTIFICHE_MITTENTE_NOME') ?? 'Immaginazione e Lavoro' },
+    sender: {
+      email: mittente,
+      name: n.mittente_nome || Deno.env.get('NOTIFICHE_MITTENTE_NOME') || 'Immaginazione e Lavoro',
+    },
     to: [{ email: n.destinatario }],
     subject: n.oggetto,
     textContent: n.testo,

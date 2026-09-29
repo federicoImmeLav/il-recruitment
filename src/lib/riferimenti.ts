@@ -48,8 +48,16 @@ async function caricaComuni(): Promise<Comune[]> {
   return (righe as [string, string, string][]).map(([nome, prov, codice]) => ({ nome, prov, codice }))
 }
 
-async function caricaScuole(): Promise<Scuola[]> {
-  const { default: righe } = await import('../data/scuole-medie-lombardia.json')
+/** Anagrafe scuole medie per regione (citta.regione); una nuova regione va generata anche nello script. */
+const SCUOLE_PER_REGIONE: Record<string, () => Promise<{ default: unknown }>> = {
+  LOMBARDIA: () => import('../data/scuole-medie-lombardia.json'),
+  PIEMONTE: () => import('../data/scuole-medie-piemonte.json'),
+}
+
+async function caricaScuole(regione: string): Promise<Scuola[]> {
+  const carica = SCUOLE_PER_REGIONE[regione.toUpperCase()]
+  if (!carica) return []
+  const { default: righe } = await carica()
   return (righe as [string, string, string][]).map(([codice, nome, comune]) => ({ codice, nome, comune }))
 }
 
@@ -57,8 +65,15 @@ export function useComuni() {
   return useQuery({ queryKey: ['riferimenti', 'comuni'], queryFn: caricaComuni, staleTime: Infinity, gcTime: Infinity })
 }
 
-export function useScuoleMedie() {
-  return useQuery({ queryKey: ['riferimenti', 'scuole'], queryFn: caricaScuole, staleTime: Infinity, gcTime: Infinity })
+/** Scuole medie della regione della sede (vuoto se la regione non e' tra quelle generate). */
+export function useScuoleMedie(regione: string | undefined) {
+  return useQuery({
+    queryKey: ['riferimenti', 'scuole', regione],
+    enabled: !!regione,
+    queryFn: () => caricaScuole(regione!),
+    staleTime: Infinity,
+    gcTime: Infinity,
+  })
 }
 
 /** Ricerca per nome: prima chi inizia col testo digitato, poi chi lo contiene. */

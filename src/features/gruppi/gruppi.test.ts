@@ -4,6 +4,7 @@ import { cambiIndirizzo, raggruppaPerIndirizzo, riepilogoIndirizzi } from './gru
 
 const corso = (id: string, nome: string, ordine: number): Corso => ({
   id,
+  sede_id: 'sede1',
   nome,
   qualifica: nome,
   ordine,
@@ -23,6 +24,7 @@ function iscritto(cognome: string, corsoId: string | null, extra: Partial<Bookin
     id: `b${n}`,
     open_day_id: 'od1',
     edizione_id: 'ed1',
+    sede_id: 'sede1',
     cognome,
     nome: 'Test',
     data_nascita: null,

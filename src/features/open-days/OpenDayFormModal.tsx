@@ -4,16 +4,19 @@ import { Button } from '../../components/ui/Button'
 import { Checkbox, InputField, SelectField, TextareaField } from '../../components/ui/Field'
 import { ErrorBanner } from '../../components/ui/Spinner'
 import { useCreateOpenDay, useUpdateOpenDay } from '../../hooks/useOpenDays'
-import { useCorsi } from '../../hooks/useCorsi'
+import { corsiDellaSede, useCorsi } from '../../hooks/useCorsi'
 import { useImpostaCorsiOpenDay, useOpenDayCorsi } from '../../hooks/useOpenDayCorsi'
 import type { OpenDay, StatoOpenDay, TipoOpenDay } from '../../types/database.types'
 
 export function OpenDayFormModal({
   edizioneId,
+  sedeId,
   openDay,
   onClose,
 }: {
   edizioneId: string
+  /** Sede dell'edizione: si propongono solo i suoi corsi. */
+  sedeId: string
   openDay?: OpenDay
   onClose: () => void
 }) {
@@ -29,7 +32,8 @@ export function OpenDayFormModal({
   const [luogo, setLuogo] = useState(openDay?.luogo_override ?? '')
 
   // Indirizzi presentati: corso_id -> posti (stringa, '' = senza limite). null finche' non si tocca nulla.
-  const { data: corsi } = useCorsi()
+  const { data: tuttiICorsi } = useCorsi()
+  const corsi = corsiDellaSede(tuttiICorsi, sedeId)
   const { indirizzi, configurati } = useOpenDayCorsi(openDay?.id)
   const impostaCorsi = useImpostaCorsiOpenDay()
   const [selezioneModificata, setSelezione] = useState<Record<string, string> | null>(null)
@@ -68,7 +72,7 @@ export function OpenDayFormModal({
       if (selezioneModificata !== null) {
         await impostaCorsi.mutateAsync({
           openDayId: salvato.id,
-          corsi: (corsi ?? [])
+          corsi: corsi
             .filter((c) => c.id in selezioneModificata)
             .map((c) => ({ corso_id: c.id, posti_max: Number(selezioneModificata[c.id]) > 0 ? Number(selezioneModificata[c.id]) : null })),
         })
@@ -123,9 +127,9 @@ export function OpenDayFormModal({
           <p className="text-title-s text-on-surface">Indirizzi presentati</p>
           <p className="mb-2 mt-1 text-body-s text-on-surface-variant">
             Sono quelli proposti nel form di iscrizione e i gruppi d'interesse dell'evento. Nessuno selezionato = tutti
-            i corsi attivi. I posti per indirizzo sono indicativi (non bloccano le iscrizioni).
+            i corsi attivi della sede. I posti per indirizzo sono indicativi (non bloccano le iscrizioni).
           </p>
-          {corsi?.map((c) => {
+          {corsi.map((c) => {
             const attivo = c.id in selezione
             return (
               <div key={c.id} className="flex min-h-14 items-center justify-between gap-3">
@@ -165,14 +169,14 @@ export function OpenDayFormModal({
             rows={2}
             value={luogo}
             onChange={(e) => setLuogo(e.target.value)}
-            placeholder="Lascia vuoto per usare quelli in Impostazioni"
+            placeholder="Lascia vuoto per usare quelli della sede (Impostazioni)"
           />
         </div>
         {saveError && (
           <ErrorBanner
             message={
               (saveError as { code?: string }).code === '23505'
-                ? 'Etichetta modulo Google già usata da un altro Open Day.'
+                ? 'Etichetta modulo Google già usata da un altro Open Day della stessa città.'
                 : 'Salvataggio non riuscito, riprova.'
             }
           />

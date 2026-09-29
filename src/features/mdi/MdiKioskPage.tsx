@@ -2,13 +2,16 @@ import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { FormProvider, useForm } from 'react-hook-form'
 import { Button } from '../../components/ui/Button'
-import { ErrorBanner, InfoBanner } from '../../components/ui/Spinner'
+import { ErrorBanner, InfoBanner, Spinner } from '../../components/ui/Spinner'
 import { SelectField } from '../../components/ui/Field'
 import { Icon } from '../../components/ui/Icon'
-import { useCorsi } from '../../hooks/useCorsi'
+import { EmptyState } from '../../components/ui/PageHeader'
+import { corsiDellaSede, useCorsi } from '../../hooks/useCorsi'
 import { useCreateMdi } from '../../hooks/useMdi'
-import { useOpenDaysPublic } from '../../hooks/useOpenDays'
-import type { KioskDatiIscritto } from '../../types/database.types'
+import { useOpenDayPublic, useOpenDaysPublic } from '../../hooks/useOpenDays'
+import { useCitta, useSediPubbliche } from '../../hooks/useSedi'
+import type { KioskDatiIscritto, SedePublic } from '../../types/database.types'
+import { KioskSedeContext, luogoFirma, type KioskSede } from './kioskSede'
 import { MdiPrintDocument } from './MdiPrintDocument'
 import { MDI_DEFAULT_VALUES, STEP_FIELDS, STEP_TITLES, type MdiFormValues } from './mdiFormTypes'
 import { StepIdentificazione } from './steps/StepIdentificazione'
@@ -37,12 +40,14 @@ function annoScolasticoInCorso(d = new Date()) {
   return `${inizio}/${String((inizio + 1) % 100).padStart(2, '0')}`
 }
 
-function KioskHeader() {
+function KioskHeader({ sede }: { sede?: SedePublic }) {
   return (
     <header className="no-print sticky top-0 z-10 flex items-center justify-between gap-4 bg-surface-container-lowest px-4 py-2 shadow-elev-1 sm:px-8">
       <img src="/logo-il.jpg" alt="Immaginazione e Lavoro" className="h-12 sm:h-14" />
       <div className="text-right">
-        <p className="text-label-m text-on-surface-variant">Open Day {annoScolasticoInCorso()}</p>
+        <p className="text-label-m text-on-surface-variant">
+          {sede ? `${sede.nome} · ` : ''}Open Day {annoScolasticoInCorso()}
+        </p>
         <p className="text-title-m text-on-surface sm:text-title-l">Manifestazione d'Interesse</p>
       </div>
     </header>
@@ -107,9 +112,100 @@ function campiDaIscritto(d: KioskDatiIscritto): Partial<MdiFormValues> {
   return Object.fromEntries(Object.entries(campi).filter(([, v]) => v)) as Partial<MdiFormValues>
 }
 
+/**
+ * Sede del kiosk: dal link di sede (/mdi/kiosk/sede/<slug>), dall'Open Day del
+ * link (/mdi/kiosk/<id>) o, senza parametri, l'unica sede attiva.
+ */
+function useSedeKiosk() {
+  const { openDayId, sedeSlug } = useParams<{ openDayId?: string; sedeSlug?: string }>()
+  const sedi = useSediPubbliche()
+  const citta = useCitta()
+  const openDay = useOpenDayPublic(openDayId)
+  const corsi = useCorsi()
+
+  const sede = sedeSlug
+    ? sedi.data?.find((s) => s.slug === sedeSlug)
+    : openDayId
+      ? sedi.data?.find((s) => s.id === openDay.data?.sede_id)
+      : sedi.data?.length === 1
+        ? sedi.data[0]
+        : undefined
+
+  const kiosk: KioskSede | null =
+    sede && corsi.data
+      ? {
+          sede,
+          citta: citta.data?.find((c) => c.id === sede.citta_id),
+          corsiSede: corsiDellaSede(corsi.data, sede.id),
+          altreSedi: (sedi.data ?? [])
+            .filter((s) => s.citta_id === sede.citta_id && s.id !== sede.id)
+            .map((s) => ({ sede: s, corsi: corsiDellaSede(corsi.data, s.id) }))
+            .filter((a) => a.corsi.length > 0),
+        }
+      : null
+
+  return {
+    kiosk,
+    openDayIdParam: openDayId,
+    sediAttive: sedi.data ?? [],
+    isLoading: sedi.isLoading || citta.isLoading || corsi.isLoading || openDay.isLoading,
+    error: sedi.error ?? citta.error ?? corsi.error ?? openDay.error,
+    // Link con sede/Open Day inesistente o non piu' attivo.
+    nonTrovata: !!(sedeSlug || openDayId) && !sede,
+  }
+}
+
 export function MdiKioskPage() {
-  const { openDayId: openDayIdParam } = useParams<{ openDayId?: string }>()
-  const { data: openDays } = useOpenDaysPublic()
+  const { kiosk, openDayIdParam, sediAttive, isLoading, error, nonTrovata } = useSedeKiosk()
+
+  if (isLoading) {
+    return (
+      <div className="min-h-dvh bg-surface-container-low">
+        <KioskHeader />
+        <main className="mx-auto max-w-3xl px-4 pt-8">
+          <Spinner />
+        </main>
+      </div>
+    )
+  }
+
+  if (!kiosk) {
+    return (
+      <div className="min-h-dvh bg-surface-container-low">
+        <KioskHeader />
+        <main className="mx-auto max-w-3xl space-y-4 px-4 pt-8 sm:px-6">
+          {error || nonTrovata ? (
+            <ErrorBanner message="Link del kiosk non valido: la sede o l’Open Day non esistono o non sono più attivi. Chiedi a un operatore il link corretto." />
+          ) : (
+            // Senza sede nel link e con più sedi attive: si sceglie la sede del tablet.
+            <>
+              <h1 className="text-headline-m text-on-surface">In quale sede ti trovi?</h1>
+              {sediAttive.length === 0 && <EmptyState icon="location_off">Nessuna sede attiva.</EmptyState>}
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {sediAttive.map((s) => (
+                  <Button key={s.id} size="lg" variant="tonal" icon="location_on" to={`/mdi/kiosk/sede/${s.slug}`}>
+                    {s.nome}
+                  </Button>
+                ))}
+              </div>
+            </>
+          )}
+        </main>
+      </div>
+    )
+  }
+
+  return (
+    <KioskSedeContext.Provider value={kiosk}>
+      {/* key: cambiando sede si riparte da un modulo vuoto. */}
+      <KioskMdi key={kiosk.sede.id} kiosk={kiosk} openDayIdParam={openDayIdParam} />
+    </KioskSedeContext.Provider>
+  )
+}
+
+function KioskMdi({ kiosk, openDayIdParam }: { kiosk: KioskSede; openDayIdParam: string | undefined }) {
+  const { sede, corsiSede } = kiosk
+  const { data: openDays } = useOpenDaysPublic(sede.id)
   const { data: corsi } = useCorsi()
   const createMdi = useCreateMdi()
 
@@ -175,7 +271,11 @@ export function MdiKioskPage() {
     }
     try {
       await createMdi.mutateAsync(
-        mdiDaForm(v, { openDayId: iscritto?.open_day_id ?? openDayId ?? null, bookingId: iscritto?.id ?? null }),
+        mdiDaForm(v, {
+          sedeId: sede.id,
+          openDayId: iscritto?.open_day_id ?? openDayId ?? null,
+          bookingId: iscritto?.id ?? null,
+        }),
       )
       setInviata(valori)
       stampa()
@@ -195,7 +295,7 @@ export function MdiKioskPage() {
 
   return (
     <div className="min-h-dvh bg-surface-container-low">
-      <KioskHeader />
+      <KioskHeader sede={sede} />
       <Progress step={step} />
 
       <main className="no-print mx-auto max-w-3xl px-4 pb-20 pt-8 sm:px-6">
@@ -301,7 +401,21 @@ export function MdiKioskPage() {
         </FormProvider>
       </main>
 
-      {inviata && corsi && <MdiPrintDocument v={inviata} corsi={corsi} />}
+      {inviata && corsi && (
+        <MdiPrintDocument
+          v={inviata}
+          // Corsi della sede, piu' le eventuali preferenze scelte in altre sedi della città.
+          corsi={[
+            ...corsiSede,
+            ...corsi.filter(
+              (c) =>
+                c.sede_id !== sede.id &&
+                [inviata.corso_pref2_id, inviata.corso_pref3_id].includes(c.id),
+            ),
+          ]}
+          luogoFirma={luogoFirma(kiosk)}
+        />
+      )}
     </div>
   )
 }

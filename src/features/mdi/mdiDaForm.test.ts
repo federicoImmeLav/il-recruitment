@@ -52,7 +52,7 @@ const compilato: MdiFormValues = {
 }
 
 describe('mdiDaForm', () => {
-  const riga = mdiDaForm(compilato, { openDayId: 'od-1', bookingId: null })
+  const riga = mdiDaForm(compilato, { sedeId: 'sede-1', openDayId: 'od-1', bookingId: null })
 
   it('normalizza e compatta le preferenze senza duplicati', () => {
     expect(riga).toMatchObject({

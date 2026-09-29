@@ -11,6 +11,9 @@ import { MonitoringDashboardPage } from './features/monitoring/MonitoringDashboa
 import { GruppiOpenDayPage } from './features/gruppi/GruppiOpenDayPage'
 import { MdiListPage } from './features/mdi/MdiListPage'
 import { ImpostazioniPage } from './features/impostazioni/ImpostazioniPage'
+import { SedeProvider } from './features/sedi/SedeProvider'
+import { ConfrontoSediPage } from './features/sedi/ConfrontoSediPage'
+import { AdminPage } from './features/sedi/AdminPage'
 
 export default function App() {
   return (
@@ -20,6 +23,8 @@ export default function App() {
       {/* Pubblico */}
       <Route path="/open-day/:openDayId/iscrizione" element={<PublicRegistrationPage />} />
       <Route path="/open-day/:openDayId/grazie" element={<RegistrationSuccessPage />} />
+      {/* Kiosk per sede (link fisso del tablet) o per singolo Open Day. */}
+      <Route path="/mdi/kiosk/sede/:sedeSlug" element={<MdiKioskPage />} />
       <Route path="/mdi/kiosk/:openDayId?" element={<MdiKioskPage />} />
 
       <Route path="/login" element={<LoginPage />} />
@@ -29,7 +34,9 @@ export default function App() {
         path="/staff"
         element={
           <ProtectedRoute>
-            <StaffLayout />
+            <SedeProvider>
+              <StaffLayout />
+            </SedeProvider>
           </ProtectedRoute>
         }
       >
@@ -39,7 +46,9 @@ export default function App() {
         <Route path="open-days/:openDayId/iscrizioni" element={<BookingsManagePage />} />
         <Route path="open-days/:openDayId/gruppi" element={<GruppiOpenDayPage />} />
         <Route path="mdi" element={<MdiListPage />} />
+        <Route path="confronto" element={<ConfrontoSediPage />} />
         <Route path="impostazioni" element={<ImpostazioniPage />} />
+        <Route path="admin" element={<AdminPage />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />
