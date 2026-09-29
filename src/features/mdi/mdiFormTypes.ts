@@ -149,6 +149,14 @@ export const MDI_DEFAULT_VALUES: MdiFormValues = {
   consenso_foto_comunicare: '',
 }
 
+/**
+ * TEMPORANEO, fase di prova (richiesta dell'utente, 2026-09-29): con `false` il kiosk
+ * non blocca su campi obbligatori/formati e si puo' avanzare e inviare anche a vuoto.
+ * DA RIMETTERE A `true` PRIMA DEL DEFINITIVO. Con Supabase reale i vincoli NOT NULL /
+ * check di `mdi` restano attivi, quindi l'invio di una MDI troppo vuota viene rifiutato.
+ */
+export const MDI_CAMPI_OBBLIGATORI = false
+
 /** Passi del kiosk, come nel vecchio IL_Kiosk_MDI_v5. Il passo 0 (identificazione) non ha campi da validare. */
 export const STEP_TITLES = [
   'Identificazione',

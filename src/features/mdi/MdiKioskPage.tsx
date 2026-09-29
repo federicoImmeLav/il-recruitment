@@ -13,7 +13,7 @@ import { useCitta, useSediPubbliche } from '../../hooks/useSedi'
 import type { KioskDatiIscritto, SedePublic } from '../../types/database.types'
 import { KioskSedeContext, luogoFirma, type KioskSede } from './kioskSede'
 import { MdiPrintDocument } from './MdiPrintDocument'
-import { MDI_DEFAULT_VALUES, STEP_FIELDS, STEP_TITLES, type MdiFormValues } from './mdiFormTypes'
+import { MDI_CAMPI_OBBLIGATORI, MDI_DEFAULT_VALUES, STEP_FIELDS, STEP_TITLES, type MdiFormValues } from './mdiFormTypes'
 import { StepIdentificazione } from './steps/StepIdentificazione'
 import { StepDatiAllievo } from './steps/StepDatiAllievo'
 import { StepGenitore } from './steps/StepGenitore'
@@ -240,7 +240,7 @@ function KioskMdi({ kiosk, openDayIdParam }: { kiosk: KioskSede; openDayIdParam:
   }
 
   async function avanti() {
-    const valido = await trigger(STEP_FIELDS[step], { shouldFocus: true })
+    const valido = !MDI_CAMPI_OBBLIGATORI || (await trigger(STEP_FIELDS[step], { shouldFocus: true }))
     if (valido) setStep((s) => Math.min(s + 1, STEP_TITLES.length - 1))
   }
 
@@ -299,6 +299,11 @@ function KioskMdi({ kiosk, openDayIdParam }: { kiosk: KioskSede; openDayIdParam:
       <Progress step={step} />
 
       <main className="no-print mx-auto max-w-3xl px-4 pb-20 pt-8 sm:px-6">
+        {!MDI_CAMPI_OBBLIGATORI && (
+          <InfoBanner tone="warning" icon="warning" className="mb-6">
+            Modalità prova: i campi obbligatori sono disattivati.
+          </InfoBanner>
+        )}
         <h1 className="text-headline-m text-on-surface">{titoli[step]}</h1>
         {STEP_SUB[step] && <p className="mb-6 mt-2 text-body-l text-on-surface-variant">{STEP_SUB[step]}</p>}
 
@@ -361,7 +366,7 @@ function KioskMdi({ kiosk, openDayIdParam }: { kiosk: KioskSede; openDayIdParam:
                       size="lg"
                       icon="print"
                       disabled={createMdi.isPending}
-                      onClick={() => void handleSubmit(invia)()}
+                      onClick={() => void (MDI_CAMPI_OBBLIGATORI ? handleSubmit(invia)() : invia(getValues()))}
                     >
                       {createMdi.isPending ? 'Invio in corso…' : 'Invia e stampa'}
                     </Button>
