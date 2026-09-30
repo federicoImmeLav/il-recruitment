@@ -48,7 +48,8 @@ Frontend: `useSede()` (`src/features/sedi/SedeProvider.tsx`) dà la sede selezio
   (0001 schema, 0002 RLS/RPC, 0003 seed corsi, 0004 kiosk MDI, 0005–0007 import Google
   Moduli + approvazione + coda notifiche + pg_cron, 0008 anagrafica MDI per INNOVAPLAN, 0009 ricerca kiosk
   estesa a tutti gli iscritti dell'edizione attiva, scelta esplicita dell'utente, 0010 indirizzi per Open
-  Day + corso iniziale per i gruppi d'interesse, 0011 multi-città/multi-sede) — **fonte di verità**, da
+  Day + corso iniziale per i gruppi d'interesse, 0011 multi-città/multi-sede, 0012 revoca EXECUTE funzioni
+  interne: su Supabase `revoke … from public` non basta, revocare anche da `anon`/`authenticated`) — **fonte di verità**, da
   incollare in ordine nello SQL Editor del progetto Supabase.
 - React Router v6, TanStack Query, React Hook Form (niente Zod: validazione via regole
   `register()` di RHF, tenuta volutamente semplice).
