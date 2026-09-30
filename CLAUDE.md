@@ -118,12 +118,13 @@ ancora collegato a un Supabase reale**. Per rendere l'app operativa:
 3. Da Supabase Dashboard → Authentication → invitare gli account staff (te stesso +
    eventuali colleghi a cui dare accesso a `/staff`).
 4. `npm install && npm run dev` per provare in locale.
-5. Collegare il repo GitHub (`https://github.com/federicoImmeLav/il-recruitment`) a
+5. Collegare il repo GitHub (`https://github.com/processi-il/il-recruitment`) a
    Vercel per il deploy, impostando le stesse due variabili d'ambiente.
 6. **Prima del definitivo**: rimettere `MDI_CAMPI_OBBLIGATORI = true` in
    `src/features/mdi/mdiFormTypes.ts` (disattivato il 2026-09-29 su richiesta dell'utente
    per provare il kiosk senza compilare tutto; finché è `false` il kiosk mostra il banner
    "Modalità prova").
 
-Repo GitHub già creato e collegato (`origin` → main pushato). L'utente ha altre
+Repo GitHub trasferito il 2026-09-30 all'account dedicato `processi-il`
+(`https://github.com/processi-il/il-recruitment`, `origin` → main pushato; git user locale al repo = `processi-il`). L'utente ha altre
 necessità/funzionalità da aggiungere in futuro, ancora da specificare — non anticiparle.
