@@ -279,7 +279,8 @@ function KioskMdi({ kiosk, openDayIdParam }: { kiosk: KioskSede; openDayIdParam:
       )
       setInviata(valori)
       stampa()
-    } catch {
+    } catch (err) {
+      console.error('Invio MDI non riuscito', err)
       setSubmitError('Invio non riuscito. Verifica la connessione e riprova, oppure chiedi a un operatore.')
     }
   }
