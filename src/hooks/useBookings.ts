@@ -78,6 +78,23 @@ export function useUpdateBooking() {
   })
 }
 
+/** Eliminazione definitiva (solo admin, RLS 0014): con le notifiche, a cascata. */
+export function useDeleteBooking() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (booking: Booking) => {
+      const { data, error } = await supabase.from('bookings').delete().eq('id', booking.id).select('id')
+      if (error) throw error
+      // Senza permesso RLS non dà errore: semplicemente non elimina nulla.
+      if (!data?.length) throw new Error('Iscrizione non eliminata')
+    },
+    onSuccess: (_data, booking) => {
+      queryClient.invalidateQueries({ queryKey: ['bookings', booking.open_day_id] })
+      queryClient.invalidateQueries({ queryKey: ['notifiche', booking.open_day_id] })
+    },
+  })
+}
+
 export function useCheckIn() {
   const update = useUpdateBooking()
   return {

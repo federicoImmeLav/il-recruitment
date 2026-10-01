@@ -1,7 +1,8 @@
 import { useState, type FormEvent } from 'react'
 import { useParams } from 'react-router-dom'
 import { Card } from '../../components/ui/Card'
-import { Button } from '../../components/ui/Button'
+import { Button, IconButton } from '../../components/ui/Button'
+import { Dialog } from '../../components/ui/Dialog'
 import { Badge } from '../../components/ui/Badge'
 import { Checkbox, InputField, SelectField } from '../../components/ui/Field'
 import { List } from '../../components/ui/List'
@@ -9,12 +10,20 @@ import { EmptyState, PageHeader, SectionHeader } from '../../components/ui/PageH
 import { Spinner, ErrorBanner } from '../../components/ui/Spinner'
 import { useSnackbar } from '../../components/ui/Snackbar'
 import { useOpenDay } from '../../hooks/useOpenDays'
-import { useBookings, useCheckIn, useCreateBooking, useDecidiIscrizione, useUpdateBooking } from '../../hooks/useBookings'
+import {
+  useBookings,
+  useCheckIn,
+  useCreateBooking,
+  useDecidiIscrizione,
+  useDeleteBooking,
+  useUpdateBooking,
+} from '../../hooks/useBookings'
 import { useRealtimeOpenDay } from '../../hooks/useRealtimeInvalidate'
 import { useNotifiche } from '../../hooks/useNotifiche'
 import { useCorsi } from '../../hooks/useCorsi'
 import { useOpenDayCorsi, type IndirizzoOpenDay } from '../../hooks/useOpenDayCorsi'
 import { IndirizzoBadge, SpostaIndirizzoSelect } from '../gruppi/IndirizzoControls'
+import { useSede } from '../sedi/SedeProvider'
 import { RichiesteDaApprovare } from './RichiesteDaApprovare'
 import { NotificheIscrizione } from './NotificheIscrizione'
 import { STATO_BOOKING_COLOR, STATO_BOOKING_LABEL } from '../../lib/constants'
@@ -68,6 +77,95 @@ function WalkInForm({ openDayId, indirizzi }: { openDayId: string; indirizzi: In
   )
 }
 
+function EliminaModal({ booking, onClose }: { booking: Booking; onClose: () => void }) {
+  const elimina = useDeleteBooking()
+  const snackbar = useSnackbar()
+
+  async function conferma() {
+    await elimina.mutateAsync(booking)
+    snackbar(`Iscrizione di ${booking.nome} ${booking.cognome} eliminata`)
+    onClose()
+  }
+
+  return (
+    <Dialog
+      title={`Eliminare ${booking.cognome} ${booking.nome}?`}
+      onClose={onClose}
+      footer={
+        <>
+          <Button variant="text" onClick={onClose}>
+            Annulla
+          </Button>
+          <Button variant="danger" disabled={elimina.isPending} onClick={() => void conferma()}>
+            {elimina.isPending ? 'Eliminazione…' : 'Elimina definitivamente'}
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-3">
+        <p className="text-body-m text-on-surface-variant">
+          L’iscrizione e i suoi messaggi vengono cancellati e non si possono recuperare. La famiglia non riceve
+          alcun avviso. Per toglierla dagli iscritti conservandone lo storico usa invece «Annulla iscrizione».
+        </p>
+        {elimina.error && <ErrorBanner message="Eliminazione non riuscita, riprova." />}
+      </div>
+    </Dialog>
+  )
+}
+
+/** Solo admin: annulla / riattiva (reversibile) ed elimina definitivamente. */
+function AzioniAdmin({ booking }: { booking: Booking }) {
+  const updateBooking = useUpdateBooking()
+  const snackbar = useSnackbar()
+  const [elimina, setElimina] = useState(false)
+
+  async function cambiaStato(status: StatoBooking, messaggio: string) {
+    try {
+      await updateBooking.mutateAsync({ id: booking.id, open_day_id: booking.open_day_id, status })
+      snackbar(messaggio)
+    } catch {
+      snackbar('Operazione non riuscita, riprova.')
+    }
+  }
+
+  return (
+    <>
+      {booking.status === 'cancelled' ? (
+        <Button
+          variant="outlined"
+          icon="undo"
+          disabled={updateBooking.isPending}
+          onClick={() =>
+            void cambiaStato(
+              booking.canale === 'walk_in' ? 'walk_in' : 'confirmed',
+              `Iscrizione di ${booking.nome} riattivata`,
+            )
+          }
+        >
+          Riattiva
+        </Button>
+      ) : (
+        booking.status !== 'rejected' && (
+          <Button
+            variant="outlined"
+            icon="event_busy"
+            disabled={updateBooking.isPending}
+            onClick={() => void cambiaStato('cancelled', `Iscrizione di ${booking.nome} annullata`)}
+          >
+            Annulla iscrizione
+          </Button>
+        )
+      )}
+      <IconButton
+        icon="delete"
+        label={`Elimina ${booking.cognome} ${booking.nome}`}
+        onClick={() => setElimina(true)}
+      />
+      {elimina && <EliminaModal booking={booking} onClose={() => setElimina(false)} />}
+    </>
+  )
+}
+
 function BookingRow({
   booking,
   notifiche,
@@ -82,6 +180,7 @@ function BookingRow({
   const { checkIn, isPending: checkinPending } = useCheckIn()
   const updateBooking = useUpdateBooking()
   const decidi = useDecidiIscrizione()
+  const { isAdmin } = useSede()
 
   return (
     <li className="flex flex-col gap-3 py-3 sm:flex-row sm:items-center sm:justify-between">
@@ -132,6 +231,7 @@ function BookingRow({
         {booking.status !== 'rejected' && booking.status !== 'cancelled' && (
           <SpostaIndirizzoSelect booking={booking} indirizzi={indirizzi} corsi={corsi} />
         )}
+        {isAdmin && <AzioniAdmin booking={booking} />}
       </div>
     </li>
   )
