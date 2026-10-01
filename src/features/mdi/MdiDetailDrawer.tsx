@@ -1,10 +1,14 @@
+import { useState } from 'react'
 import { Dialog } from '../../components/ui/Dialog'
 import { Button } from '../../components/ui/Button'
 import { Badge } from '../../components/ui/Badge'
 import { Spinner, ErrorBanner } from '../../components/ui/Spinner'
-import { useMdiDetail, useToggleExportInnovaplan } from '../../hooks/useMdi'
+import { useDeleteMdi, useMdiDetail, useToggleExportInnovaplan } from '../../hooks/useMdi'
 import { useCorsi } from '../../hooks/useCorsi'
 import { useAuth } from '../auth/AuthProvider'
+import { useSede } from '../sedi/SedeProvider'
+import { useSnackbar } from '../../components/ui/Snackbar'
+import type { Mdi } from '../../types/database.types'
 import { SOSTEGNO_STATO_LABEL } from '../../lib/constants'
 
 function Row({ label, value }: { label: string; value: string | number | null | undefined }) {
@@ -17,6 +21,41 @@ function Row({ label, value }: { label: string; value: string | number | null | 
   )
 }
 
+function EliminaMdiModal({ mdi, onClose, onEliminata }: { mdi: Mdi; onClose: () => void; onEliminata: () => void }) {
+  const elimina = useDeleteMdi()
+  const snackbar = useSnackbar()
+
+  async function conferma() {
+    await elimina.mutateAsync(mdi.id)
+    snackbar(`MDI di ${mdi.all_nome} ${mdi.all_cognome} eliminata`)
+    onEliminata()
+  }
+
+  return (
+    <Dialog
+      title={`Eliminare la MDI di ${mdi.all_cognome} ${mdi.all_nome}?`}
+      onClose={onClose}
+      footer={
+        <>
+          <Button variant="text" onClick={onClose}>
+            Annulla
+          </Button>
+          <Button variant="danger" disabled={elimina.isPending} onClick={() => void conferma().catch(() => {})}>
+            {elimina.isPending ? 'Eliminazione…' : 'Elimina definitivamente'}
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-3">
+        <p className="text-body-m text-on-surface-variant">
+          La MDI viene cancellata e non si può recuperare. Se è già stata esportata su INNOVAPLAN, lì resta.
+        </p>
+        {elimina.error && <ErrorBanner message="Eliminazione non riuscita, riprova." />}
+      </div>
+    </Dialog>
+  )
+}
+
 const SEZIONE = 'mb-1 border-b border-outline-variant pb-1 text-title-s text-primary'
 
 export function MdiDetailDrawer(
@@ -25,6 +64,8 @@ export function MdiDetailDrawer(
   const { data: corsi } = useCorsi()
   const { profile } = useAuth()
   const toggleExport = useToggleExportInnovaplan()
+  const { isAdmin } = useSede()
+  const [elimina, setElimina] = useState(false)
 
   const corsoNome = (corsoId: string | null) => corsi?.find((c) => c.id === corsoId)?.nome
 
@@ -36,16 +77,23 @@ export function MdiDetailDrawer(
       footer={
         mdi &&
         profile && (
-          <Button
-            variant={mdi.esportato_innovaplan ? 'outlined' : 'success'}
-            icon={mdi.esportato_innovaplan ? 'undo' : 'check'}
-            disabled={toggleExport.isPending}
-            onClick={() =>
-              void toggleExport.mutateAsync({ id: mdi.id, esportato: !mdi.esportato_innovaplan, staffId: profile.id })
-            }
-          >
-            {mdi.esportato_innovaplan ? 'Segna come da esportare' : 'Segna come esportata su INNOVAPLAN'}
-          </Button>
+          <>
+            {isAdmin && (
+              <Button variant="text" icon="delete" onClick={() => setElimina(true)}>
+                Elimina
+              </Button>
+            )}
+            <Button
+              variant={mdi.esportato_innovaplan ? 'outlined' : 'success'}
+              icon={mdi.esportato_innovaplan ? 'undo' : 'check'}
+              disabled={toggleExport.isPending}
+              onClick={() =>
+                void toggleExport.mutateAsync({ id: mdi.id, esportato: !mdi.esportato_innovaplan, staffId: profile.id })
+              }
+            >
+              {mdi.esportato_innovaplan ? 'Segna come da esportare' : 'Segna come esportata su INNOVAPLAN'}
+            </Button>
+          </>
         )
       }
     >
@@ -163,6 +211,7 @@ export function MdiDetailDrawer(
           )}
         </div>
       )}
+      {elimina && mdi && <EliminaMdiModal mdi={mdi} onClose={() => setElimina(false)} onEliminata={onClose} />}
     </Dialog>
   )
 }

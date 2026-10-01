@@ -63,6 +63,23 @@ export function useCreateMdi() {
   })
 }
 
+/** Eliminazione definitiva (solo admin, RLS 0015). */
+export function useDeleteMdi() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { data, error } = await supabase.from('mdi').delete().eq('id', id).select('id')
+      if (error) throw error
+      // Senza permesso RLS non dà errore: semplicemente non elimina nulla.
+      if (!data?.length) throw new Error('MDI non eliminata')
+    },
+    onSuccess: (_data, id) => {
+      queryClient.invalidateQueries({ queryKey: ['mdi'] })
+      queryClient.removeQueries({ queryKey: ['mdi_detail', id] })
+    },
+  })
+}
+
 /** Ricerca per cognome o nome tra gli iscritti alle edizioni attive della sede (RPC pubblica, 0011). */
 export function useKioskCercaIscritti(sedeId: string, query: string) {
   const q = query.trim()
