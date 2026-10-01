@@ -31,7 +31,7 @@ export function OpenDaysListPage() {
   const { sedeId, sede, multiSede, nomeSede } = useSede()
   const { data: edizioni, isLoading: loadingEdizioni, error: edizioniError } = useEdizioni(sedeId)
   const [edizioneId, setEdizioneId] = useState<string | undefined>(undefined)
-  const [showEdizioneModal, setShowEdizioneModal] = useState(false)
+  const [edizioneModal, setEdizioneModal] = useState<'new' | 'edit' | null>(null)
   const [openDayModal, setOpenDayModal] = useState<'new' | OpenDay | null>(null)
 
   // Scelta dell'utente se ancora valida (cambiando sede puo' non esserlo), altrimenti l'edizione attiva.
@@ -66,7 +66,7 @@ export function OpenDaysListPage() {
                 Kiosk MDI della sede
               </Button>
             )}
-            <Button variant="outlined" icon="add" onClick={() => setShowEdizioneModal(true)}>
+            <Button variant="outlined" icon="add" onClick={() => setEdizioneModal('new')}>
               Nuova edizione
             </Button>
           </>
@@ -94,6 +94,13 @@ export function OpenDaysListPage() {
               </FilterChip>
             ))}
           </ChipSet>
+          {activeEdizione && (
+            <div className="-mt-2">
+              <Button variant="text" icon="edit" onClick={() => setEdizioneModal('edit')}>
+                Modifica edizione
+              </Button>
+            </div>
+          )}
 
           <SectionHeader
             title="Eventi"
@@ -191,7 +198,12 @@ export function OpenDaysListPage() {
         </>
       )}
 
-      {showEdizioneModal && <EdizioneFormModal onClose={() => setShowEdizioneModal(false)} />}
+      {edizioneModal && (
+        <EdizioneFormModal
+          edizione={edizioneModal === 'edit' ? activeEdizione : undefined}
+          onClose={() => setEdizioneModal(null)}
+        />
+      )}
       {openDayModal && activeEdizione && (
         <OpenDayFormModal
           edizioneId={activeEdizione.id}
