@@ -1,10 +1,12 @@
 // Riceve le risposte del Google Modulo di iscrizione Open Day (inviate dall'Apps
 // Script in integrations/google-forms/Code.gs) e le salva come iscrizioni
-// "da approvare" (status 'pending').
+// "da approvare" (status 'pending'). E' l'unico canale d'iscrizione pubblico
+// (0013): l'app non ha piu' una pagina di iscrizione propria.
 //
-// Un modulo per città (0011_multisede.sql): l'Apps Script manda lo slug della
-// città nell'header `x-citta` (default "milano") e l'Open Day si cerca solo tra
-// quelli delle sedi di quella città.
+// Un solo modulo per città, con una domanda a scelta singola tra le date
+// (0011_multisede.sql): l'Apps Script manda lo slug della città nell'header
+// `x-citta` (default "milano") e l'Open Day si cerca solo tra quelli delle sedi
+// di quella città. Oggi c'è solo il modulo di Milano.
 //
 // Protezione: niente JWT (Apps Script non ne ha), ma header `x-webhook-secret`
 // che deve coincidere con il secret della città: GOOGLE_FORMS_SECRET_<SLUG>
@@ -158,6 +160,8 @@ Deno.serve(async (req) => {
       data_nascita: dataIso(payload.dataNascita),
       scuola: testo(payload.scuola),
       classe: testo(payload.classe),
+      // Domanda "Classe frequentata" con opzioni "2ª media", "3ª media", ...
+      flag_seconda_media: testo(payload.classe)?.startsWith('2') ?? false,
       residenza: testo(payload.residenza),
       corso_id: corso1Id,
       corso2_id: corsoId(payload.corso2, false),

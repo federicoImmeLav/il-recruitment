@@ -20,7 +20,6 @@ export function useRealtimeOpenDay(openDayId: string | undefined) {
         { event: '*', schema: 'public', table: 'bookings', filter: `open_day_id=eq.${openDayId}` },
         () => {
           queryClient.invalidateQueries({ queryKey: ['bookings', openDayId] })
-          queryClient.invalidateQueries({ queryKey: ['posti_disponibili', openDayId] })
         },
       )
       .on(

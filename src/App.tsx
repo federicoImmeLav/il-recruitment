@@ -2,8 +2,6 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import { StaffLayout } from './components/layout/StaffLayout'
 import { ProtectedRoute } from './router/ProtectedRoute'
 import { LoginPage } from './features/auth/LoginPage'
-import { PublicRegistrationPage } from './features/registration/PublicRegistrationPage'
-import { RegistrationSuccessPage } from './features/registration/RegistrationSuccessPage'
 import { MdiKioskPage } from './features/mdi/MdiKioskPage'
 import { OpenDaysListPage } from './features/open-days/OpenDaysListPage'
 import { BookingsManagePage } from './features/bookings/BookingsManagePage'
@@ -20,9 +18,7 @@ export default function App() {
     <Routes>
       <Route path="/" element={<Navigate to="/staff/dashboard" replace />} />
 
-      {/* Pubblico */}
-      <Route path="/open-day/:openDayId/iscrizione" element={<PublicRegistrationPage />} />
-      <Route path="/open-day/:openDayId/grazie" element={<RegistrationSuccessPage />} />
+      {/* Pubblico. Le iscrizioni agli Open Day arrivano solo dal Google Modulo (webhook). */}
       {/* Kiosk per sede (link fisso del tablet) o per singolo Open Day. */}
       <Route path="/mdi/kiosk/sede/:sedeSlug" element={<MdiKioskPage />} />
       <Route path="/mdi/kiosk/:openDayId?" element={<MdiKioskPage />} />

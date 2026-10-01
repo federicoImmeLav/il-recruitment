@@ -35,7 +35,7 @@ export interface CreateBookingInput {
   flag_seconda_media?: boolean
 }
 
-/** Unico punto di creazione prenotazione (RPC), usato sia dal form pubblico sia dai walk-in staff. */
+/** Creazione prenotazione da parte dello staff (walk-in) via RPC; le famiglie si iscrivono solo dal Google Modulo. */
 export function useCreateBooking() {
   const queryClient = useQueryClient()
   return useMutation({
@@ -60,7 +60,6 @@ export function useCreateBooking() {
     },
     onSuccess: (booking) => {
       queryClient.invalidateQueries({ queryKey: ['bookings', booking.open_day_id] })
-      queryClient.invalidateQueries({ queryKey: ['posti_disponibili', booking.open_day_id] })
     },
   })
 }

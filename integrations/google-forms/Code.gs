@@ -3,7 +3,8 @@
  *
  * Ad ogni risposta inviata, manda i dati alla Edge Function
  * `google-forms-webhook`, che crea l'iscrizione "da approvare".
- * Un modulo (e una copia di questo script) per città.
+ * E' l'unico canale d'iscrizione agli Open Day: un solo modulo per città
+ * (oggi solo Milano), con tutte le date in un'unica domanda a scelta singola.
  * Istruzioni complete: integrations/google-forms/README.md
  *
  * NESSUN SEGRETO IN QUESTO FILE: URL e segreto vanno in
@@ -11,8 +12,8 @@
  *   WEBHOOK_URL     https://<ref>.supabase.co/functions/v1/google-forms-webhook
  *   WEBHOOK_SECRET  lo stesso valore del secret della città su Supabase
  *                   (GOOGLE_FORMS_SECRET_TORINO, ...; GOOGLE_FORMS_SECRET per Milano)
- *   CITTA           identificativo della città nell'app (milano, torino); se
- *                   manca vale milano
+ *   CITTA           (facoltativa) identificativo della città nell'app; se manca
+ *                   vale milano
  */
 
 /**
@@ -21,19 +22,19 @@
  * Le domande non presenti nel modulo vengono semplicemente ignorate.
  */
 var MAPPA = {
-  'Open Day': 'openDay', // domanda a menu/scelta multipla con le date (obbligatoria)
-  'Cognome studente': 'cognome', // obbligatoria
-  'Nome studente': 'nome', // obbligatoria
-  'Data di nascita': 'dataNascita',
+  "Data dell'Open Day": 'openDay', // scelta multipla (una sola risposta) con le date
+  'Cognome dello studente': 'cognome',
+  'Nome dello studente': 'nome',
+  'Data di nascita dello studente': 'dataNascita', // tipo Data
+  'Classe frequentata': 'classe', // opzioni "2ª media", "3ª media", ...: "2..." = seconda media
   'Scuola di provenienza': 'scuola',
-  'Classe': 'classe',
   'Comune di residenza': 'residenza',
-  'Cognome genitore': 'accCognome',
-  'Nome genitore': 'accNome',
-  'Cellulare': 'telefono', // obbligatoria
-  'Email': 'email', // consigliata obbligatoria: serve per le conferme via email
-  'Corso di interesse': 'corso1',
-  'Secondo corso di interesse': 'corso2',
+  'Cognome del genitore': 'accCognome',
+  'Nome del genitore': 'accNome',
+  'Cellulare': 'telefono',
+  'Email': 'email', // serve per le conferme e i promemoria via email
+  'Indirizzo di interesse': 'corso1',
+  'Seconda preferenza': 'corso2',
   'Note': 'note',
 };
 

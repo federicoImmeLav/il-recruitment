@@ -1,7 +1,7 @@
 # IL Recruitment — Open Day & MDI
 
 App di gestione recruitment IeFP di **Immaginazione e Lavoro**: creazione Open Day,
-registrazione pubblica, monitoraggio in tempo reale e gestione delle Manifestazioni di
+iscrizione tramite Google Modulo (con approvazione dello staff), monitoraggio in tempo reale e gestione delle Manifestazioni di
 Interesse (MDI). MVP volutamente limitato a questi 4 flussi — altre funzionalità del
 vecchio portale (composizione classi, azioni scuole, stage, ecc.) non sono incluse.
 
@@ -165,7 +165,6 @@ src/
 ├── router/         # ProtectedRoute per l'area staff
 └── features/
     ├── auth/           # login staff
-    ├── registration/   # form pubblico di iscrizione all'Open Day
     ├── bookings/       # gestione iscrizioni + check-in (staff)
     ├── monitoring/      # dashboard di monitoraggio live (staff)
     ├── open-days/       # creazione/gestione edizioni e Open Day + indirizzi presentati (staff)

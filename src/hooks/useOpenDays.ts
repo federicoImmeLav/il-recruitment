@@ -66,18 +66,6 @@ export function useOpenDayPublic(openDayId: string | undefined) {
   })
 }
 
-export function usePostiDisponibili(openDayId: string | undefined) {
-  return useQuery({
-    queryKey: ['posti_disponibili', openDayId],
-    enabled: !!openDayId,
-    queryFn: async () => {
-      const { data, error } = await supabase.rpc('posti_disponibili', { p_open_day_id: openDayId! })
-      if (error) throw error
-      return data as number
-    },
-  })
-}
-
 export function useCreateOpenDay() {
   const queryClient = useQueryClient()
   return useMutation({
