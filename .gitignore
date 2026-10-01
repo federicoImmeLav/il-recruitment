@@ -33,3 +33,6 @@ dist-ssr
 
 # Materiale di riferimento con dati personali reali (es. export SIDI): MAI nel repo pubblico
 risorse/
+
+# Cache locale della Supabase CLI (progetto collegato, versione)
+supabase/.temp/
