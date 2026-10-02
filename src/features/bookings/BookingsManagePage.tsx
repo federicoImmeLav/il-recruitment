@@ -26,6 +26,7 @@ import { IndirizzoBadge, SpostaIndirizzoSelect } from '../gruppi/IndirizzoContro
 import { useSede } from '../sedi/SedeProvider'
 import { RichiesteDaApprovare } from './RichiesteDaApprovare'
 import { NotificheIscrizione } from './NotificheIscrizione'
+import { DaRicontattareModal } from './DaRicontattareModal'
 import { STATO_BOOKING_COLOR, STATO_BOOKING_LABEL } from '../../lib/constants'
 import type { Booking, Corso, Notifica, StatoBooking } from '../../types/database.types'
 
@@ -246,6 +247,7 @@ export function BookingsManagePage() {
   const { indirizzi } = useOpenDayCorsi(openDayId)
   // Filtro per indirizzo attuale: 'tutti', '' = senza indirizzo, altrimenti corso_id.
   const [filtroIndirizzo, setFiltroIndirizzo] = useState('tutti')
+  const [ricontattare, setRicontattare] = useState(false)
   useRealtimeOpenDay(openDayId)
 
   const checkedIn = bookings?.filter((b) => b.checked_in).length ?? 0
@@ -276,6 +278,9 @@ export function BookingsManagePage() {
         }
         actions={
           <>
+            <Button variant="outlined" icon="person_off" disabled={!openDay || !bookings} onClick={() => setRicontattare(true)}>
+              Da ricontattare
+            </Button>
             <Button variant="outlined" icon="groups" to={`/staff/open-days/${openDayId}/gruppi`}>
               Gruppi d'interesse
             </Button>
@@ -285,6 +290,10 @@ export function BookingsManagePage() {
           </>
         }
       />
+
+      {ricontattare && openDay && bookings && (
+        <DaRicontattareModal openDay={openDay} bookings={bookings} corsi={corsi ?? []} onClose={() => setRicontattare(false)} />
+      )}
 
       {bookings && <RichiesteDaApprovare bookings={bookings} />}
 
