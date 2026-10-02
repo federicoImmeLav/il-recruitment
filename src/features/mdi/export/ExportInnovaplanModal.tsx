@@ -66,7 +66,7 @@ export function ExportInnovaplanModal({ onClose }: { onClose: () => void }) {
   const incomplete = ctx
     ? righe.map((m) => ({ m, avvisi: avvisiMdi(m, ctx) })).filter((x) => x.avvisi.length > 0)
     : []
-  const corsiSenzaCodice = corsiSede.filter((c) => !c.codice_ministeriale)
+  const corsiSenzaCodice = corsiSede.filter((c) => !c.codice_ministeriale && (corsoId === 'tutti' || c.id === corsoId))
 
   function scarica() {
     if (!ctx || righe.length === 0) return
