@@ -39,17 +39,19 @@ export function ExportInnovaplanModal({ onClose }: { onClose: () => void }) {
   const snackbar = useSnackbar()
 
   const [selezione, setSelezione] = useState<Selezione>('da_esportare')
+  // Filtro sulla 1ª preferenza: 'tutti', '' = senza preferenza, altrimenti corso_id.
+  const [corsoId, setCorsoId] = useState('tutti')
   const [anno, setAnno] = useState(annoScolasticoIscrizione())
   const [scaricate, setScaricate] = useState<string[] | null>(null)
   const [segnate, setSegnate] = useState(false)
 
   const righe = useMemo(() => {
     if (!sedeId) return []
-    const lista = tutte ?? []
+    const lista = (tutte ?? []).filter((m) => corsoId === 'tutti' || (m.corso_pref1_id ?? '') === corsoId)
     if (selezione === 'da_esportare') return lista.filter((m) => !m.esportato_innovaplan)
     if (selezione === 'tutte') return lista
     return lista.filter((m) => m.open_day_id === selezione.slice(3))
-  }, [tutte, selezione, sedeId])
+  }, [tutte, selezione, corsoId, sedeId])
 
   const ctx: ContestoExport | null =
     sede && corsi
@@ -68,7 +70,9 @@ export function ExportInnovaplanModal({ onClose }: { onClose: () => void }) {
 
   function scarica() {
     if (!ctx || righe.length === 0) return
-    scaricaCsv(generaCsv(righe, ctx), nomeFile(ctx))
+    const corso = corsoId === 'tutti' ? null : (corsiSede.find((c) => c.id === corsoId)?.nome ?? 'senza_preferenza')
+    const suffisso = corso ? `_${corso.normalize('NFD').replace(/[^A-Za-z0-9]+/g, '_').replace(/^_|_$/g, '')}` : ''
+    scaricaCsv(generaCsv(righe, ctx), nomeFile(ctx).replace(/\.csv$/, `${suffisso}.csv`))
     setScaricate(righe.map((m) => m.id))
     setSegnate(false)
   }
@@ -116,6 +120,7 @@ export function ExportInnovaplanModal({ onClose }: { onClose: () => void }) {
             onChange={(e) => {
               setSedeId(e.target.value)
               setSelezione('da_esportare')
+              setCorsoId('tutti')
               setScaricate(null)
             }}
           >
@@ -135,7 +140,7 @@ export function ExportInnovaplanModal({ onClose }: { onClose: () => void }) {
           </InfoBanner>
         )}
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <SelectField
             label="Quali MDI"
             value={selezione}
@@ -151,6 +156,22 @@ export function ExportInnovaplanModal({ onClose }: { onClose: () => void }) {
                 Open Day {new Date(od.data).toLocaleDateString('it-IT')} · {od.ora.slice(0, 5)}
               </option>
             ))}
+          </SelectField>
+          <SelectField
+            label="Corso (1ª preferenza)"
+            value={corsoId}
+            onChange={(e) => {
+              setCorsoId(e.target.value)
+              setScaricate(null)
+            }}
+          >
+            <option value="tutti">Tutti i corsi</option>
+            {corsiSede.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.nome}
+              </option>
+            ))}
+            <option value="">Senza preferenza</option>
           </SelectField>
           <InputField
             label="Anno scolastico (inizio)"
